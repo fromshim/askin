@@ -35,6 +35,10 @@ cd site && vercel            # 미리보기
 cd site && vercel --prod     # 프로덕션
 ```
 
+**배포는 이 명령으로만 한다.** GitHub 에 push 해도 자동 배포되지 않는다. Vercel Hobby 플랜은 개인 계정
+저장소만 Git 연동을 지원하고 이 저장소는 `fromshim` 조직 소속이라 연결할 수 없다(`vercel git connect` 가
+실패한다). push 는 소스 보관이고 배포는 따로다.
+
 미리보기 URL은 Vercel 보호가 걸려 로그인 없이 안 열린다. 내용을 확인하려면 `vercel curl <url>`을 쓴다.
 
 다운로드 버튼은 GitHub Releases를 가리킨다. 버전을 올리면 index.html의 #start 안 링크와 파일 크기 표시를 같이 고친다. 가격·라이선스는 아직 없고 임의로 넣지 않는다.
