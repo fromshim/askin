@@ -1,6 +1,6 @@
 {
   "name": "harness-bro",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "Claude Code 하네스를 점검하고 고치는 루프. 데스크톱 앱 이름은 askin이다",
