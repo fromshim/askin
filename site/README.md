@@ -26,6 +26,8 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs node site/scripts/verif
 
 ## 배포
 
+주소는 https://get-askin.vercel.app 이다. `askin-desktop.vercel.app` 과 `askin-xi.vercel.app` 도 같은 프로젝트를 가리킨다(`askin.vercel.app` 과 `askin-app.vercel.app` 은 남이 점유 중이라 못 쓴다).
+
 Vercel에 올린다. Root Directory는 site, Framework Preset은 Other, 빌드 명령은 비운다. 별도 출력 폴더가 없는 정적 사이트다. .vercelignore가 제품 내부 문서와 검증 스크립트, 미사용 목업을 빼서 BRIEF.md·DESIGN.md·PRODUCT.md·.impeccable은 배포에 안 올라간다(실측으로 404 확인).
 
 ```sh
