@@ -24,11 +24,18 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs node site/scripts/verif
 
 375/400/768/1280px의 라이트·다크 캡처, 가로 넘침, 버튼 44px, 테마 유지, 그래프 선택, 복사 성공·반복·실패, reduced-motion, JavaScript 없는 HTML을 검증한다. 캡처는 .impeccable/review/에 남고 커밋·배포에서 제외한다. 기존 앱 회귀 검사는 루트의 npm test.
 
-## 배포 준비
+## 배포
 
-Vercel에서 Root Directory를 site, Framework Preset을 Other, 빌드 명령을 비움으로 설정한다. 별도 출력 폴더가 없는 정적 사이트다. .vercelignore는 제품 내부 문서·검증 스크립트·미사용 목업을 제외한다. 이번 작업에서 원격 배포와 push는 하지 않았다.
+Vercel에 올린다. Root Directory는 site, Framework Preset은 Other, 빌드 명령은 비운다. 별도 출력 폴더가 없는 정적 사이트다. .vercelignore가 제품 내부 문서와 검증 스크립트, 미사용 목업을 빼서 BRIEF.md·DESIGN.md·PRODUCT.md·.impeccable은 배포에 안 올라간다(실측으로 404 확인).
 
-다운로드 URL이 확정되면 index.html의 #start 내 준비 중 표시를 실제 다운로드 링크로 바꾸고, 배포 파일에 맞춰 macOS·서명 안내를 확인한다. 가격·라이선스·소스 공개 URL은 임의로 넣지 않았다.
+```sh
+cd site && vercel            # 미리보기
+cd site && vercel --prod     # 프로덕션
+```
+
+미리보기 URL은 Vercel 보호가 걸려 로그인 없이 안 열린다. 내용을 확인하려면 `vercel curl <url>`을 쓴다.
+
+다운로드 버튼은 GitHub Releases를 가리킨다. 버전을 올리면 index.html의 #start 안 링크와 파일 크기 표시를 같이 고친다. 가격·라이선스는 아직 없고 임의로 넣지 않는다.
 
 ## 그래프와 모션
 

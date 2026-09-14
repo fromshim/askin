@@ -142,6 +142,8 @@ code { font-family: var(--font-mono); font-size: 15px; overflow-wrap: anywhere; 
 .start-section h2 + p { margin-top: 24px; font-size: 14px; }
 .download-label { display: inline-block; font-size: 20px; font-weight: 500; }
 .download-panel > p { margin-top: 16px; font-size: 15px; }
+.download-button { margin-top: 20px; display: flex; width: fit-content; }
+.download-panel > p a { text-decoration: underline; text-underline-offset: 3px; }
 .download-panel .install-note { font-size: 12px; max-width: 340px; }
 .footer { display: flex; gap: 24px; align-items: center; min-height: 112px; padding-bottom: 24px; }
 .footer .wordmark { font-size: 24px; }
