@@ -31,9 +31,11 @@ PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs node site/scripts/verif
 Vercel에 올린다. Root Directory는 site, Framework Preset은 Other, 빌드 명령은 비운다. 별도 출력 폴더가 없는 정적 사이트다. .vercelignore가 제품 내부 문서와 검증 스크립트, 미사용 목업을 빼서 BRIEF.md·DESIGN.md·PRODUCT.md·.impeccable은 배포에 안 올라간다(실측으로 404 확인).
 
 ```sh
-cd site && vercel            # 미리보기
-cd site && vercel --prod     # 프로덕션
+npm run deploy               # 미리보기 (저장소 루트에서)
+npm run deploy -- --prod     # 프로덕션
 ```
+
+`deploy` 스크립트는 `cd site && vercel` 이다. `--` 뒤에 준 인자는 vercel 명령 끝에 붙는다.
 
 **배포는 이 명령으로만 한다.** GitHub 에 push 해도 자동 배포되지 않는다. Vercel Hobby 플랜은 개인 계정
 저장소만 Git 연동을 지원하고 이 저장소는 `fromshim` 조직 소속이라 연결할 수 없다(`vercel git connect` 가

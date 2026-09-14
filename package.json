@@ -13,7 +13,8 @@
     "report": "node src/report.mjs",
     "desktop": "electron desktop/app/main.mjs",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --mac"
+    "dist": "electron-builder --mac",
+    "deploy": "cd site && vercel"
   },
   "engines": {
     "node": ">=22"
