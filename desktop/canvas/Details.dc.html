@@ -1,0 +1,819 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>body{margin:0;background:#FFFFFF}</style>
+</helmet>
+<div id="askin-desktop-v1" style="width:1180px"><style>
+    #askin-desktop-v1 {
+      --ask-bg: light-dark(#ffffff, #0e0e10);
+      --ask-panel: light-dark(#ffffff, #17171a);
+      --ask-panel-raised: light-dark(#ffffff, #1d1d21);
+      --ask-ink: light-dark(#17171a, #f2f2f3);
+      --ask-dim: light-dark(#5b5b60, #b0b0b6);
+      --ask-faint: light-dark(#727278, #8b8b91);
+      --ask-line: light-dark(#e3e3e6, #2b2b2f);
+      --ask-line-soft: light-dark(#efeff1, #202024);
+      --ask-purple: light-dark(#7c3aed, #a78bfa);
+      --ask-purple-hover: light-dark(#5b21b6, #c4b5fd);
+      --ask-on-purple: light-dark(#ffffff, #20162e);
+      --ask-purple-soft: light-dark(#f0e9ff, #2a2040);
+      --ask-purple-ink: light-dark(#5b21b6, #c4b5fd);
+      --ask-positive: light-dark(#2e9463, #7dd3a7);
+      --ask-danger: light-dark(#b4232f, #ff9aa5);
+      --ask-shadow: light-dark(0 10px 28px rgb(0 0 0 / 6%), 0 16px 38px rgb(0 0 0 / 24%));
+      --ask-orb-core: light-dark(#7c3aed, #8b5cf6);
+      --ask-orb-violet: light-dark(#a78bfa, #c4b5fd);
+      --ask-orb-magenta: light-dark(#e879f9, #f0abfc);
+      --ask-orb-blue: light-dark(#3b8ef0, #93c5fd);
+      --ask-orb-cyan: light-dark(#22d3ee, #67e8f9);
+      --ask-orb-amber: light-dark(#f59e0b, #fbbf24);
+      --ask-orb-eye: light-dark(#21172e, #17121f);
+      --ask-orb-eye-white: light-dark(#ffffff, #ffffff);
+      --ask-orb-highlight: light-dark(rgb(255 255 255 / 82%), rgb(255 255 255 / 70%));
+      --ask-orb-shadow: light-dark(rgb(109 40 217 / 24%), rgb(167 139 250 / 28%));
+      --ask-font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+      --ask-mono: ui-monospace, SFMono-Regular, "D2Coding", Menlo, Consolas, "Apple SD Gothic Neo", monospace;
+      color-scheme: light dark;
+      width: 100%;
+      color: var(--ask-ink);
+      font-family: var(--ask-font);
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #askin-desktop-v1 * { box-sizing: border-box; }
+    #askin-desktop-v1 .ask-sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    #askin-desktop-v1 button,
+    #askin-desktop-v1 input,
+    #askin-desktop-v1 select,
+    #askin-desktop-v1 textarea { color: inherit; font: inherit; }
+    #askin-desktop-v1 button { cursor: pointer; }
+    #askin-desktop-v1 button:focus-visible,
+    #askin-desktop-v1 input:focus-visible,
+    #askin-desktop-v1 select:focus-visible,
+    #askin-desktop-v1 textarea:focus-visible { outline: 2px solid var(--ask-purple); outline-offset: 2px; }
+
+    #askin-desktop-v1 .ask-window {
+      width: 100%;
+      overflow: hidden;
+      border: 1px solid var(--ask-line);
+      border-radius: 16px;
+      background: var(--ask-bg);
+      box-shadow: var(--ask-shadow);
+    }
+
+    #askin-desktop-v1 .ask-titlebar {
+      display: flex;
+      min-height: 40px;
+      align-items: center;
+      gap: 7px;
+      padding: 0 12px;
+      border-bottom: 1px solid var(--ask-line);
+      background: var(--ask-bg);
+    }
+
+    #askin-desktop-v1 .ask-window-dot {
+      width: 9px;
+      height: 9px;
+      border: 1px solid var(--ask-line);
+      border-radius: 50%;
+      background: var(--ask-panel);
+    }
+
+    #askin-desktop-v1 .ask-titlebar-name {
+      margin-left: 6px;
+      color: var(--ask-faint);
+      font-size: 12px;
+    }
+
+    #askin-desktop-v1 .ask-layout {
+      display: grid;
+      grid-template-columns: 200px minmax(0, 1fr) 238px;
+      gap: 8px;
+      min-height: 820px;
+      padding: 8px;
+      background: var(--ask-bg);
+    }
+
+    #askin-desktop-v1 .ask-sidebar {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      padding: 8px 4px 6px;
+    }
+
+    #askin-desktop-v1 .ask-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 0 8px;
+      color: var(--ask-purple);
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.04em;
+    }
+
+    #askin-desktop-v1 .ask-brand-mark {
+      position: relative;
+      width: 18px;
+      height: 18px;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+    }
+
+    #askin-desktop-v1 .ask-brand-mark::after {
+      position: absolute;
+      right: 2px;
+      bottom: 2px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    #askin-desktop-v1 .ask-sidebar-label {
+      margin: 13px 8px 6px;
+      color: var(--ask-faint);
+      font-size: 12px;
+    }
+
+    #askin-desktop-v1 .ask-projects { display: grid; gap: 3px; }
+
+    #askin-desktop-v1 .ask-project {
+      display: flex;
+      min-height: 40px;
+      min-width: 0;
+      align-items: center;
+      gap: 8px;
+      padding: 0 9px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      text-align: left;
+      transition: color 120ms cubic-bezier(.2, 0, 0, 1), background-color 120ms cubic-bezier(.2, 0, 0, 1), border-color 120ms cubic-bezier(.2, 0, 0, 1), transform 120ms cubic-bezier(.2, 0, 0, 1);
+    }
+
+    #askin-desktop-v1 .ask-project:hover { background: var(--ask-purple-soft); }
+    #askin-desktop-v1 .ask-project:active { transform: scale(.96); }
+    #askin-desktop-v1 .ask-project.is-current { border-color: var(--ask-line); background: var(--ask-panel); font-weight: 500; }
+
+    #askin-desktop-v1 .ask-project-mark {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border: 1.5px solid var(--ask-faint);
+      border-radius: 3px;
+    }
+
+    #askin-desktop-v1 .ask-project.is-current .ask-project-mark { border-color: var(--ask-purple); background: var(--ask-purple); }
+    #askin-desktop-v1 .ask-project-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    #askin-desktop-v1 .ask-add-project {
+      display: flex;
+      min-height: 40px;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      margin: 8px 0 0;
+      border: 1px dashed var(--ask-line);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--ask-dim);
+      transition: color 120ms cubic-bezier(.2, 0, 0, 1), border-color 120ms cubic-bezier(.2, 0, 0, 1), transform 120ms cubic-bezier(.2, 0, 0, 1);
+    }
+
+    #askin-desktop-v1 .ask-add-project:hover { border-color: var(--ask-purple); color: var(--ask-purple); }
+    #askin-desktop-v1 .ask-add-project:active { transform: scale(.96); }
+
+    #askin-desktop-v1 .ask-main-panel,
+    #askin-desktop-v1 .ask-chat-panel {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--ask-line);
+      border-radius: 14px;
+      background: var(--ask-panel);
+      box-shadow: var(--ask-shadow);
+    }
+
+    #askin-desktop-v1 .ask-main-panel { display: flex; flex-direction: column; }
+
+    #askin-desktop-v1 .ask-panel-heading {
+      display: flex;
+      min-height: 48px;
+      align-items: center;
+      gap: 10px;
+      padding: 0 15px;
+      border-bottom: 1px solid var(--ask-line-soft);
+    }
+
+    #askin-desktop-v1 .ask-panel-heading h1,
+    #askin-desktop-v1 .ask-panel-heading h2 { margin: 0; font-size: 14px; font-weight: 500; }
+    #askin-desktop-v1 .ask-panel-heading-meta { margin-left: auto; color: var(--ask-faint); font-family: var(--ask-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    #askin-desktop-v1 .ask-icon-button {
+      display: inline-flex;
+      min-width: 40px;
+      min-height: 40px;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--ask-dim);
+      transition: color 120ms cubic-bezier(.2, 0, 0, 1), background-color 120ms cubic-bezier(.2, 0, 0, 1), transform 120ms cubic-bezier(.2, 0, 0, 1);
+    }
+
+    #askin-desktop-v1 .ask-icon-button:hover { background: var(--ask-purple-soft); color: var(--ask-purple); }
+    #askin-desktop-v1 .ask-icon-button:active { transform: scale(.96); }
+
+    #askin-desktop-v1 .ask-session {
+      flex: 0 0 auto;
+      border-bottom: 1px solid var(--ask-line);
+    }
+
+    #askin-desktop-v1 .ask-session-body {
+      display: flex;
+      min-height: 150px;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: var(--ask-dim);
+      text-align: center;
+      transition: min-height 180ms cubic-bezier(.2, 0, 0, 1), opacity 180ms cubic-bezier(.2, 0, 0, 1), padding 180ms cubic-bezier(.2, 0, 0, 1);
+    }
+
+    #askin-desktop-v1 .ask-session.is-collapsed .ask-session-body { min-height: 0; height: 0; overflow: hidden; padding-top: 0; padding-bottom: 0; opacity: 0; }
+    #askin-desktop-v1 .ask-empty-symbol { display: block; margin: 0 auto 9px; color: var(--ask-purple); font-size: 24px; }
+    #askin-desktop-v1 .ask-empty-copy strong { display: block; margin-bottom: 3px; color: var(--ask-ink); font-weight: 500; }
+    #askin-desktop-v1 .ask-empty-copy span { font-size: 12px; }
+
+    #askin-desktop-v1 .ask-report { display: flex; min-height: 560px; flex: 1; flex-direction: column; }
+
+    #askin-desktop-v1 .ask-report-nav {
+      display: none;
+      min-width: 0;
+      flex: 1;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    #askin-desktop-v1 .ask-report.has-result .ask-report-nav { display: flex; }
+    #askin-desktop-v1 .ask-report.has-result .ask-report-heading-label { display: none; }
+
+    #askin-desktop-v1 .ask-report-period {
+      min-width: 0;
+      overflow: hidden;
+      font-family: var(--ask-mono);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #askin-desktop-v1 .ask-report-stage { display: flex; flex: 1; flex-direction: column; }
+
+    #askin-desktop-v1 .ask-report-view { display: none; flex: 1; }
+    #askin-desktop-v1 .ask-report-view.is-visible { display: flex; }
+
+    #askin-desktop-v1 .ask-report-empty {
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      text-align: center;
+    }
+
+    #askin-desktop-v1 .ask-report-empty h3 { margin: 0 0 6px; font-size: 18px; font-weight: 500; letter-spacing: -0.02em; }
+    #askin-desktop-v1 .ask-report-empty p { max-width: 330px; margin: 0 0 18px; color: var(--ask-dim); text-wrap: pretty; }
+
+    #askin-desktop-v1 .ask-primary,
+    #askin-desktop-v1 .ask-secondary,
+    #askin-desktop-v1 .ask-quiet {
+      display: inline-flex;
+      min-height: 40px;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 13px;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: color 120ms cubic-bezier(.2, 0, 0, 1), background-color 120ms cubic-bezier(.2, 0, 0, 1), border-color 120ms cubic-bezier(.2, 0, 0, 1), transform 120ms cubic-bezier(.2, 0, 0, 1);
+    }
+
+    #askin-desktop-v1 .ask-primary:active,
+    #askin-desktop-v1 .ask-secondary:active,
+    #askin-desktop-v1 .ask-quiet:active { transform: scale(.96); }
+    #askin-desktop-v1 .ask-primary { border: 1px solid var(--ask-purple); background: var(--ask-purple); color: var(--ask-on-purple); }
+    #askin-desktop-v1 .ask-primary:hover { border-color: var(--ask-purple-hover); background: var(--ask-purple-hover); }
+    #askin-desktop-v1 .ask-primary:disabled { cursor: default; opacity: .55; }
+    #askin-desktop-v1 .ask-secondary { border: 1px solid var(--ask-line); background: var(--ask-panel); color: var(--ask-ink); }
+    #askin-desktop-v1 .ask-secondary:hover { border-color: var(--ask-purple); color: var(--ask-purple); }
+    #askin-desktop-v1 .ask-quiet { border: 1px solid transparent; background: transparent; color: var(--ask-dim); }
+    #askin-desktop-v1 .ask-quiet:hover { color: var(--ask-purple); }
+
+    #askin-desktop-v1 .ask-analysis-form {
+      width: 100%;
+      max-width: 420px;
+      margin: auto;
+      padding: 24px;
+    }
+
+    #askin-desktop-v1 .ask-analysis-form h3 { margin: 0 0 4px; font-size: 17px; font-weight: 500; }
+    #askin-desktop-v1 .ask-analysis-form > p { margin: 0 0 18px; color: var(--ask-dim); }
+    #askin-desktop-v1 .ask-field { display: grid; gap: 6px; margin-bottom: 14px; }
+    #askin-desktop-v1 .ask-field label { font-size: 12px; font-weight: 500; }
+
+    #askin-desktop-v1 .ask-select,
+    #askin-desktop-v1 .ask-chat-input,
+    #askin-desktop-v1 .ask-model-select {
+      min-height: 40px;
+      border: 1px solid var(--ask-line);
+      border-radius: 8px;
+      background: var(--ask-panel-raised);
+      color: var(--ask-ink);
+    }
+
+    #askin-desktop-v1 .ask-select { width: 100%; padding: 0 10px; }
+    #askin-desktop-v1 .ask-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+    #askin-desktop-v1 .ask-loading {
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      text-align: center;
+    }
+
+    #askin-desktop-v1 .ask-loading-mark {
+      width: 34px;
+      height: 34px;
+      margin: 0 auto 12px;
+      border: 3px solid var(--ask-purple-soft);
+      border-top-color: var(--ask-purple);
+      border-radius: 50%;
+      animation: ask-spin 900ms linear infinite;
+    }
+
+    #askin-desktop-v1 .ask-loading strong { display: block; margin-bottom: 3px; font-weight: 500; }
+    #askin-desktop-v1 .ask-loading span { color: var(--ask-dim); font-size: 12px; }
+
+    #askin-desktop-v1 .ask-result { flex-direction: column; padding: 12px 16px 18px; }
+    #askin-desktop-v1 .ask-map-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 2px 0 9px; }
+    #askin-desktop-v1 .ask-map-heading h3 { margin: 0; font-size: 15px; font-weight: 500; text-wrap: balance; }
+    #askin-desktop-v1 .ask-map-legend { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; color: var(--ask-faint); font-size: 11px; }
+    #askin-desktop-v1 .ask-map-legend span { display: inline-flex; align-items: center; gap: 4px; }
+    #askin-desktop-v1 .ask-map-legend i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    /* 범례 글자는 --ask-faint 를 유지하고 점만 종류 색을 쓴다. 노드는 면이라 3:1 이면 되는데
+       11px 범례 글자는 4.5:1 이 필요하다. 색을 밝히자 스킬 3.80:1 · MCP 3.33:1 로 그 선 아래가
+       됐다(실측 2026-09-02). 색만으로 종류를 말하지 않는다는 규율과도 이쪽이 맞는다. */
+    #askin-desktop-v1 .ask-map-legend span { color: var(--ask-faint); }
+    #askin-desktop-v1 .ask-map-legend .is-agent i { background: var(--ask-purple); }
+    #askin-desktop-v1 .ask-map-legend .is-skill i { background: var(--ask-positive); }
+    #askin-desktop-v1 .ask-map-legend .is-mcp i { background: var(--ask-orb-blue); }
+    #askin-desktop-v1 .ask-map-legend .is-agent { color: var(--ask-purple); }
+    #askin-desktop-v1 .ask-map-legend .is-skill { color: var(--ask-positive); }
+    #askin-desktop-v1 .ask-map-legend .is-mcp { color: var(--ask-orb-blue); }
+    #askin-desktop-v1 .ask-harness-map { --ask-map-scale: 1; position: relative; min-height: 330px; overflow: hidden; border: 1px solid var(--ask-line-soft); border-radius: 12px; background: var(--ask-line-soft); }
+    #askin-desktop-v1 .ask-harness-map[data-zoom="far"] { --ask-map-scale: .78; }
+    #askin-desktop-v1 .ask-harness-map[data-zoom="near"] { --ask-map-scale: 1.18; }
+    #askin-desktop-v1 .ask-map-viewport { position: absolute; inset: 0; transform: scale(var(--ask-map-scale)); transform-origin: center; transition: transform 180ms cubic-bezier(.2, 0, 0, 1); }
+    #askin-desktop-v1 .ask-map-lines { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--ask-line); }
+    #askin-desktop-v1 .ask-map-lines path { fill: none; stroke: currentColor; stroke-width: 1.35; vector-effect: non-scaling-stroke; }
+    #askin-desktop-v1 .ask-map-lines .is-active { color: var(--ask-purple); stroke-width: 2; }
+    #askin-desktop-v1 .ask-map-lines circle { fill: var(--ask-purple); }
+    #askin-desktop-v1 .ask-graph-node { position: absolute; z-index: 1; display: grid; width: 72px; min-height: 54px; align-content: center; justify-items: center; padding: 6px 2px; border: 0; background: transparent; color: var(--ask-purple); transform: translate(-50%, -50%); transition: color 140ms cubic-bezier(.2, 0, 0, 1), transform 140ms cubic-bezier(.2, 0, 0, 1); }
+    #askin-desktop-v1 .ask-graph-node:hover,
+    #askin-desktop-v1 .ask-graph-node.is-selected { transform: translate(-50%, -50%) scale(1.08); }
+    #askin-desktop-v1 .ask-graph-node:active { transform: translate(-50%, -50%) scale(.96); }
+    #askin-desktop-v1 .ask-node-mark { width: 14px; height: 14px; border: 2px solid var(--ask-panel-raised); border-radius: 50%; background: currentColor; box-shadow: 0 0 0 1px currentColor, 0 4px 10px color-mix(in srgb, currentColor 22%, transparent); }
+    #askin-desktop-v1 .ask-graph-node.is-selected .ask-node-mark { box-shadow: 0 0 0 2px var(--ask-panel-raised), 0 0 0 5px color-mix(in srgb, currentColor 28%, transparent), 0 0 18px currentColor; }
+    #askin-desktop-v1 .ask-graph-node[data-kind="project"] .ask-node-mark { width: 20px; height: 20px; }
+    #askin-desktop-v1 .ask-graph-node[data-kind="skill"] { color: var(--ask-positive); }
+    #askin-desktop-v1 .ask-graph-node[data-kind="mcp"] { color: var(--ask-orb-blue); }
+    #askin-desktop-v1 .ask-node-label { max-width: 96px; overflow: hidden; margin-top: 5px; color: var(--ask-dim); font-size: 11px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; transition: color 140ms cubic-bezier(.2, 0, 0, 1), opacity 140ms cubic-bezier(.2, 0, 0, 1); }
+    #askin-desktop-v1 .ask-graph-node:hover .ask-node-label,
+    #askin-desktop-v1 .ask-graph-node.is-selected .ask-node-label { color: var(--ask-purple-ink); }
+    #askin-desktop-v1 .ask-harness-map[data-zoom="far"] .ask-node-label { opacity: 0; }
+    #askin-desktop-v1 .ask-harness-map[data-zoom="far"] .ask-graph-node[data-kind="project"] .ask-node-label,
+    #askin-desktop-v1 .ask-harness-map[data-zoom="far"] .ask-graph-node.is-selected .ask-node-label { opacity: 1; }
+    #askin-desktop-v1 .ask-node-scope { position: absolute; top: 7px; right: 9px; color: var(--ask-faint); font-size: 10px; }
+    #askin-desktop-v1 .ask-map-zoom { position: absolute; right: 8px; bottom: 8px; z-index: 3; display: inline-grid; grid-template-columns: 32px 48px 32px; align-items: center; overflow: hidden; border: 1px solid var(--ask-line); border-radius: 8px; background: var(--ask-panel-raised); box-shadow: 0 5px 14px rgb(31 27 45 / 8%); }
+    #askin-desktop-v1 .ask-map-zoom button { min-width: 32px; min-height: 32px; padding: 0; border: 0; background: transparent; color: var(--ask-dim); font-size: 16px; }
+    #askin-desktop-v1 .ask-map-zoom button:hover { background: var(--ask-purple-soft); color: var(--ask-purple-ink); }
+    #askin-desktop-v1 .ask-map-zoom button:disabled { cursor: default; opacity: .36; }
+    #askin-desktop-v1 .ask-map-zoom-output { color: var(--ask-faint); font-family: var(--ask-mono); font-size: 10px; text-align: center; }
+    /* 노드 팝오버. 그래프 아래 가로 바 대신 클릭한 노드 위(또는 경계에 걸리면 아래)에 붙는다.
+       위치는 JS 가 노드의 렌더된 좌표를 읽어 계산한다(--ask-tail-x 로 꼬리만 노드를 계속 가리키게 조정). */
+    #askin-desktop-v1 .ask-node-popover { position: absolute; z-index: 4; width: 280px; padding: 12px 14px; border: 1px solid var(--ask-line); border-radius: 10px; background: var(--ask-panel-raised); box-shadow: var(--ask-shadow); }
+    #askin-desktop-v1 .ask-node-popover[hidden] { display: none; }
+    #askin-desktop-v1 .ask-popover-close { position: absolute; top: 6px; right: 6px; min-width: 26px; min-height: 26px; border: 0; border-radius: 6px; background: transparent; color: var(--ask-faint); font-size: 13px; line-height: 1; transition: color 120ms cubic-bezier(.2, 0, 0, 1), background-color 120ms cubic-bezier(.2, 0, 0, 1); }
+    #askin-desktop-v1 .ask-popover-close:hover { background: var(--ask-purple-soft); color: var(--ask-purple); }
+    #askin-desktop-v1 .ask-popover-head { padding-right: 20px; }
+    #askin-desktop-v1 .ask-popover-head strong { display: block; font-weight: 500; }
+    #askin-desktop-v1 .ask-popover-head small { display: block; margin-top: 1px; color: var(--ask-faint); font-size: 11px; }
+    #askin-desktop-v1 .ask-popover-stats { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr) minmax(0, .85fr); gap: 4px 6px; margin: 9px 0 0; padding: 8px 0; border-top: 1px solid var(--ask-line-soft); border-bottom: 1px solid var(--ask-line-soft); }
+    #askin-desktop-v1 .ask-popover-stats dt { margin: 0; color: var(--ask-faint); font-size: 10px; }
+    #askin-desktop-v1 .ask-popover-stats dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+    #askin-desktop-v1 .ask-popover-action { width: 100%; margin-top: 9px; }
+    #askin-desktop-v1 .ask-node-popover > .ask-chat-choice { margin-top: 8px; }
+    #askin-desktop-v1 .ask-popover-tail { position: absolute; left: var(--ask-tail-x, 50%); width: 12px; height: 12px; background: var(--ask-panel-raised); transform: translateX(-50%) rotate(45deg); }
+    #askin-desktop-v1 .ask-node-popover:not([data-flip="down"]) .ask-popover-tail { bottom: -7px; border-right: 1px solid var(--ask-line); border-bottom: 1px solid var(--ask-line); }
+    #askin-desktop-v1 .ask-node-popover[data-flip="down"] .ask-popover-tail { top: -7px; border-left: 1px solid var(--ask-line); border-top: 1px solid var(--ask-line); }
+    #askin-desktop-v1 .ask-findings-heading { margin: 15px 0 0; font-size: 14px; font-weight: 500; }
+    #askin-desktop-v1 .ask-finding { padding: 15px 2px; border-bottom: 1px solid var(--ask-line-soft); }
+    #askin-desktop-v1 .ask-finding-kicker { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; color: var(--ask-purple); font-size: 12px; font-weight: 500; }
+    #askin-desktop-v1 .ask-finding-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    #askin-desktop-v1 .ask-finding h3 { margin: 0 0 5px; font-size: 17px; font-weight: 500; line-height: 1.4; letter-spacing: -0.02em; text-wrap: balance; }
+    #askin-desktop-v1 .ask-finding p { margin: 0; color: var(--ask-dim); text-wrap: pretty; }
+    #askin-desktop-v1 .ask-finding-action { margin-top: 10px; }
+    #askin-desktop-v1 .ask-chat-choice { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; padding: 8px; border-left: 2px solid var(--ask-purple); background: var(--ask-purple-soft); }
+    #askin-desktop-v1 .ask-chat-choice span { width: 100%; color: var(--ask-purple-ink); font-size: 11px; font-weight: 500; }
+    #askin-desktop-v1 .ask-details-toggle { display: flex; min-height: 44px; align-items: center; gap: 8px; padding: 0; border: 0; background: transparent; color: var(--ask-dim); font-weight: 500; }
+    #askin-desktop-v1 .ask-details-toggle:hover { color: var(--ask-purple); }
+    #askin-desktop-v1 .ask-details { display: none; padding: 3px 0 14px; color: var(--ask-dim); font-size: 12px; }
+    #askin-desktop-v1 .ask-details.is-open { display: block; }
+    #askin-desktop-v1 .ask-details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    #askin-desktop-v1 .ask-detail-section { padding: 12px; border: 1px solid var(--ask-line-soft); border-radius: 9px; background: var(--ask-bg); }
+    #askin-desktop-v1 .ask-detail-section h4 { margin: 0 0 5px; color: var(--ask-ink); font-size: 12px; font-weight: 500; }
+    #askin-desktop-v1 .ask-detail-section p { margin: 0; text-wrap: pretty; }
+
+    /* 레포트 영역. 프로토타입의 .ask-finding / .ask-details* 를 그대로 쓰고, 축 목록만
+       여기서 더한다 — 프로토타입은 세부 분석 칸에 문장을 넣은 정적 데모라 축 목록이 없다.
+       축은 design-concept.md:348 대로 세부 분석 안에 둔다("세부 분석 펼치기를 열면
+       준수율 축, 관찰값, 주별 추세"). 첫 화면은 우선 고칠 것만 말한다. */
+    #askin-desktop-v1 .ask-report-body { overflow-y: auto; scrollbar-width: none; }
+    #askin-desktop-v1 .ask-report-body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+    #askin-desktop-v1 .ask-axis-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    #askin-desktop-v1 .ask-axis-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    #askin-desktop-v1 .ask-axis-name { overflow: hidden; color: var(--ask-ink); text-overflow: ellipsis; white-space: nowrap; }
+    /* 숫자가 세로로 안 흔들리게. 축마다 자릿수가 달라서 tabular 가 아니면 값 열이 울퉁불퉁하다 */
+    #askin-desktop-v1 .ask-axis-value { flex: 0 0 auto; color: var(--ask-ink); font-variant-numeric: tabular-nums; }
+    /* 판정 불가. 값을 흐리게 하고 왜 못 쟀는지를 아래 줄에 단위 이름으로 적는다
+       (CLAUDE.md: "분모가 비면 예외 없이 판정 불가다. 0% 도 아니고 해당 없음도 아니다") */
+    #askin-desktop-v1 .ask-axis-item.is-muted .ask-axis-name,
+    #askin-desktop-v1 .ask-axis-item.is-muted .ask-axis-value { color: var(--ask-faint); }
+    #askin-desktop-v1 .ask-axis-why { margin: 2px 0 0; color: var(--ask-faint); font-size: 11px; text-wrap: pretty; }
+    /* 축 하나의 내역(관찰값의 detail). 훅 시간이 훅별로 갈리는 자리다 */
+    #askin-desktop-v1 .ask-axis-detail { display: grid; gap: 2px; margin: 3px 0 0; padding: 0 0 0 10px; list-style: none; color: var(--ask-faint); font-size: 11px; }
+    #askin-desktop-v1 .ask-axis-detail li { display: flex; justify-content: space-between; gap: 8px; }
+    #askin-desktop-v1 .ask-basis-section { margin-top: 8px; }
+    #askin-desktop-v1 .ask-findings-empty { margin: 4px 2px 0; color: var(--ask-faint); font-size: 12px; }
+
+    #askin-desktop-v1 .ask-chat-panel { display: flex; flex-direction: column; }
+
+    #askin-desktop-v1 .ask-chat-tabs {
+      display: flex;
+      min-height: 48px;
+      align-items: center;
+      gap: 2px;
+      padding: 5px 6px 0;
+      border-bottom: 1px solid var(--ask-line-soft);
+    }
+
+    #askin-desktop-v1 .ask-chat-tab {
+      display: inline-flex;
+      min-width: 0;
+      min-height: 40px;
+      align-items: center;
+      gap: 6px;
+      padding: 0 9px;
+      border: 0;
+      border-radius: 8px 8px 0 0;
+      background: transparent;
+      color: var(--ask-faint);
+      transition: color 120ms cubic-bezier(.2, 0, 0, 1), background-color 120ms cubic-bezier(.2, 0, 0, 1);
+    }
+
+    #askin-desktop-v1 .ask-chat-tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #askin-desktop-v1 .ask-chat-tab.is-active { background: var(--ask-purple-soft); color: var(--ask-purple-ink); font-weight: 500; }
+    #askin-desktop-v1 .ask-tab-spacer { flex: 1; }
+
+    #askin-desktop-v1 .ask-chat-body { display: flex; min-height: 0; flex: 1; flex-direction: column; padding: 14px 12px 10px; }
+
+    #askin-desktop-v1 .ask-agent-orb {
+      position: relative;
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      margin-top: 2px;
+      filter: drop-shadow(0 4px 8px var(--ask-orb-shadow));
+    }
+
+    #askin-desktop-v1 .ask-orb-core {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 31% 24%, var(--ask-orb-highlight) 0 5%, transparent 19%),
+        radial-gradient(circle at 28% 68%, var(--ask-orb-cyan) 0 9%, transparent 32%),
+        radial-gradient(circle at 75% 64%, var(--ask-orb-amber) 0 4%, transparent 25%),
+        radial-gradient(circle at 72% 27%, var(--ask-orb-magenta) 0 11%, transparent 35%),
+        radial-gradient(circle at 50% 56%, var(--ask-orb-blue) 0 16%, transparent 48%),
+        radial-gradient(circle at 50% 50%, var(--ask-orb-violet) 0 32%, var(--ask-orb-core) 72%);
+      box-shadow: inset -5px -6px 9px var(--ask-orb-shadow), inset 4px 4px 7px var(--ask-orb-highlight);
+      animation: ask-orb-flow 12s ease-in-out infinite alternate;
+      transition: filter 300ms cubic-bezier(.2, 0, 0, 1), transform 300ms cubic-bezier(.2, 0, 0, 1);
+    }
+
+    #askin-desktop-v1 .ask-orb-core::after {
+      position: absolute;
+      inset: 3px;
+      border: 1px solid var(--ask-orb-highlight);
+      border-radius: 50%;
+      opacity: .46;
+      content: "";
+    }
+
+    #askin-desktop-v1 .ask-orb-eyes { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0; transform: translateX(2px); }
+    #askin-desktop-v1 .ask-eye { position: relative; width: 14px; height: 17px; border: 1.5px solid var(--ask-orb-eye); border-radius: 52% 48% 48% 54%; background: var(--ask-orb-eye-white); transform: rotate(-4deg); transform-origin: center; animation: ask-blink 6.5s ease-in-out infinite; transition: height 180ms cubic-bezier(.2, 0, 0, 1), transform 180ms cubic-bezier(.2, 0, 0, 1); }
+    #askin-desktop-v1 .ask-eye:last-child { margin-left: -2px; border-radius: 48% 55% 52% 45%; transform: rotate(5deg); }
+    #askin-desktop-v1 .ask-eye::after { position: absolute; top: 6px; left: 7px; width: 5px; height: 7px; border-radius: 50%; background: var(--ask-orb-eye); content: ""; }
+    #askin-desktop-v1 .ask-eye:last-child::after { left: 4px; }
+
+    #askin-desktop-v1 .ask-agent-orb[data-state="thinking"] .ask-eye { height: 3px; border-width: 0 0 1.5px; border-radius: 50%; background: transparent; animation: none; }
+    #askin-desktop-v1 .ask-agent-orb[data-state="thinking"] .ask-eye::after { display: none; }
+    #askin-desktop-v1 .ask-agent-orb[data-state="thinking"] .ask-eye:first-child { transform: rotate(7deg); }
+    #askin-desktop-v1 .ask-agent-orb[data-state="thinking"] .ask-eye:last-child { transform: rotate(-7deg); }
+    #askin-desktop-v1 .ask-agent-orb[data-state="thinking"] .ask-orb-core { transform: scale(.95); animation-duration: 7s; }
+    #askin-desktop-v1 .ask-agent-orb[data-state="working"] .ask-eye { height: 11px; animation: none; transform: rotate(8deg) scaleY(.78); }
+    #askin-desktop-v1 .ask-agent-orb[data-state="working"] .ask-eye:last-child { transform: rotate(-8deg) scaleY(.78); }
+    #askin-desktop-v1 .ask-agent-orb[data-state="working"] .ask-orb-core { filter: saturate(1.18) brightness(1.1); animation-duration: 4.5s; }
+    #askin-desktop-v1 .ask-agent-orb[data-state="talking"] .ask-eye { animation: ask-eye-talk 420ms ease-in-out 2; }
+
+    #askin-desktop-v1 .ask-chat-messages { display: grid; gap: 9px; margin-top: auto; }
+    #askin-desktop-v1 .ask-agent-message-row { display: flex; width: fit-content; max-width: 100%; align-items: flex-start; gap: 7px; justify-self: start; }
+    #askin-desktop-v1 .ask-message { width: fit-content; max-width: min(88%, 520px); padding: 9px 10px; border-radius: 10px; text-wrap: pretty; }
+    #askin-desktop-v1 .ask-agent-message-row .ask-message { max-width: calc(100% - 41px); }
+    #askin-desktop-v1 .ask-message.is-user { justify-self: end; background: var(--ask-purple-soft); color: var(--ask-purple-ink); }
+    #askin-desktop-v1 .ask-message.is-agent { background: var(--ask-bg); color: var(--ask-ink); }
+    #askin-desktop-v1 .ask-message small { display: block; margin-bottom: 2px; color: var(--ask-faint); font-size: 11px; }
+
+    #askin-desktop-v1 .ask-suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding: 4px 0 8px; }
+    #askin-desktop-v1 .ask-suggestion { min-height: 38px; padding: 7px 10px; border: 1px solid var(--ask-line); border-radius: 999px; background: var(--ask-panel); color: var(--ask-dim); text-align: left; transition: color 120ms cubic-bezier(.2, 0, 0, 1), background-color 120ms cubic-bezier(.2, 0, 0, 1), border-color 120ms cubic-bezier(.2, 0, 0, 1), transform 120ms cubic-bezier(.2, 0, 0, 1); }
+    #askin-desktop-v1 .ask-suggestion:hover { border-color: var(--ask-purple); background: var(--ask-purple-soft); color: var(--ask-purple-ink); }
+    #askin-desktop-v1 .ask-suggestion:active { transform: scale(.96); }
+
+    #askin-desktop-v1 .ask-chat-composer { padding: 0 10px 10px; border-top: 1px solid var(--ask-line-soft); }
+    #askin-desktop-v1 .ask-composer-box { display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 6px; align-items: end; margin-top: 10px; padding: 6px; border: 1px solid var(--ask-line); border-radius: 10px; background: var(--ask-panel-raised); }
+    #askin-desktop-v1 .ask-model-select { grid-column: 1 / -1; width: 100%; padding: 0 5px; font-size: 11px; }
+    #askin-desktop-v1 .ask-chat-input { min-height: 40px; max-height: 78px; resize: none; padding: 9px 4px; border: 0; background: transparent; line-height: 1.45; }
+    #askin-desktop-v1 .ask-send { min-width: 40px; min-height: 40px; border: 0; border-radius: 8px; background: var(--ask-purple); color: var(--ask-on-purple); font-size: 17px; transition: background-color 120ms cubic-bezier(.2, 0, 0, 1), transform 120ms cubic-bezier(.2, 0, 0, 1); }
+    #askin-desktop-v1 .ask-send:hover { background: var(--ask-purple-hover); }
+    #askin-desktop-v1 .ask-send:active { transform: scale(.96); }
+    #askin-desktop-v1 .ask-storage-note { padding: 0 2px 7px; color: var(--ask-faint); font-size: 11px; }
+
+    @keyframes ask-spin { to { transform: rotate(360deg); } }
+    @keyframes ask-orb-flow { 0% { transform: rotate(-5deg) scale(.98); filter: hue-rotate(-5deg); } 50% { transform: rotate(5deg) scale(1.02); filter: hue-rotate(10deg); } 100% { transform: rotate(-2deg) scale(1); filter: hue-rotate(-3deg); } }
+    @keyframes ask-blink { 0%, 93%, 97%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+    @keyframes ask-eye-talk { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+
+    @media (min-width: 920px) {
+      #askin-desktop-v1 .ask-layout { grid-template-columns: 220px minmax(0, 1fr) 300px; }
+    }
+
+    @media (max-width: 680px) {
+      #askin-desktop-v1 .ask-layout { grid-template-columns: 1fr; min-height: 0; }
+      #askin-desktop-v1 .ask-sidebar { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; }
+      #askin-desktop-v1 .ask-brand { grid-column: 1 / -1; }
+      #askin-desktop-v1 .ask-sidebar-label { display: none; }
+      #askin-desktop-v1 .ask-projects { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      #askin-desktop-v1 .ask-add-project { margin: 0; }
+      #askin-desktop-v1 .ask-main-panel,
+      #askin-desktop-v1 .ask-chat-panel { min-height: 620px; }
+    }
+
+    @media (max-width: 420px) {
+      #askin-desktop-v1 .ask-sidebar { grid-template-columns: 1fr; }
+      #askin-desktop-v1 .ask-projects { grid-template-columns: 1fr; }
+      #askin-desktop-v1 .ask-panel-heading { padding-right: 9px; padding-left: 11px; }
+      #askin-desktop-v1 .ask-report-period { max-width: 150px; }
+      #askin-desktop-v1 .ask-analysis-form { padding: 18px; }
+      #askin-desktop-v1 .ask-result { padding-right: 12px; padding-left: 12px; }
+      #askin-desktop-v1 .ask-harness-map { min-height: 0; padding: 34px 7px 8px; }
+      #askin-desktop-v1 .ask-map-viewport { position: relative; inset: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; transform: none; }
+      #askin-desktop-v1 .ask-map-lines { display: none; }
+      #askin-desktop-v1 .ask-map-zoom { display: none; }
+      #askin-desktop-v1 .ask-graph-node,
+      #askin-desktop-v1 .ask-graph-node:hover,
+      #askin-desktop-v1 .ask-graph-node.is-selected,
+      #askin-desktop-v1 .ask-graph-node:active { position: static; width: 100%; min-height: 52px; grid-template-columns: 42px minmax(0, 1fr); align-items: center; justify-items: start; transform: none; }
+      #askin-desktop-v1 .ask-graph-node[data-kind="project"] { grid-column: 1 / -1; }
+      #askin-desktop-v1 .ask-node-label,
+      #askin-desktop-v1 .ask-harness-map[data-zoom="far"] .ask-node-label { width: 100%; margin: 0 0 0 5px; opacity: 1; text-align: left; }
+      /* 이 폭에서는 노드가 정적 목록으로 눕는다(위 규칙). 좌표 기반 팝오버 폭도 줄여
+         맵 밖으로 넘치지 않게 한다. */
+      #askin-desktop-v1 .ask-node-popover { width: calc(100% - 16px); }
+      #askin-desktop-v1 .ask-map-heading { align-items: flex-start; flex-direction: column; }
+      #askin-desktop-v1 .ask-map-legend { justify-content: flex-start; }
+      #askin-desktop-v1 .ask-details-grid { grid-template-columns: 1fr; }
+      #askin-desktop-v1 .ask-composer-box { grid-template-columns: 1fr 40px; }
+      #askin-desktop-v1 .ask-model-select { grid-column: 1 / -1; width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #askin-desktop-v1 *,
+      #askin-desktop-v1 *::before,
+      #askin-desktop-v1 *::after { animation: none !important; scroll-behavior: auto !important; transition: none !important; }
+    }
+  
+/* 창 아래끝 표시. 프로토타입도 목업도 내용만큼 세로로 늘어난다.
+   실제 창은 세로 1080 이라 그 아래는 스크롤해야 보인다. 잘라내는 대신 선을 긋는다.
+   무엇이 첫 화면에 들어오는지가 이 그림이 답해야 할 질문이라서다. */
+#askin-desktop-v1[data-fold] .ask-window { position: relative; }
+#askin-desktop-v1[data-fold] .ask-window::after {
+  content: "여기까지가 창 높이 1080 안에 들어오는 첫 화면. 아래는 스크롤해야 보인다";
+  position: absolute;
+  z-index: 5;
+  top: 1080px;
+  right: 0;
+  left: 0;
+  padding: 5px 14px 4px;
+  border-top: 1px dashed var(--ask-purple);
+  background: var(--ask-bg);
+  color: var(--ask-purple);
+  font-size: 11px;
+  text-align: right;
+  pointer-events: none;
+}
+
+/* 프로토타입의 .ask-session-body 는 빈 상태 하나를 가운데 놓는 가로 flex 다.
+   세션 행이 들어오면 세로로 쌓아야 한다. 프로토타입에 그 상태가 없어서 여기서 메운다. */
+#askin-desktop-v1 .ask-session-body:has(.ask-session-row) {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+#askin-desktop-v1 .ask-session-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 2px;
+  font-size: 12px;
+  color: var(--ask-dim);
+}
+#askin-desktop-v1 .ask-session-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--ask-purple);
+}
+#askin-desktop-v1 .ask-session-dot.is-done {
+  background: transparent;
+  border: 1.5px solid var(--ask-faint);
+}
+#askin-desktop-v1 .ask-session-meta {
+  flex: 1;
+  font-family: var(--ask-mono);
+  font-variant-numeric: tabular-nums;
+}
+#askin-desktop-v1 .ask-session-state { color: var(--ask-faint); font-size: 11px; }
+#askin-desktop-v1 .ask-call-flow {
+  margin-top: 6px;
+  padding: 0 2px;
+  color: var(--ask-faint);
+  font-family: var(--ask-mono);
+  font-size: 11px;
+}
+
+#askin-desktop-v1 .ask-altlist-wrap { margin-top: 14px; }
+#askin-desktop-v1 .ask-altlist-wrap h4 { margin: 0 0 6px; color: var(--ask-ink); font-size: 12px; font-weight: 500; }
+#askin-desktop-v1 .ask-altlist { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+#askin-desktop-v1 .ask-altlist li {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid var(--ask-line-soft);
+  border-radius: 8px;
+  font-size: 12px;
+}
+#askin-desktop-v1 .ask-altlist-arrow { color: var(--ask-faint); }
+#askin-desktop-v1 .ask-altlist-to i { color: var(--ask-faint); font-style: normal; font-size: 11px; }
+#askin-desktop-v1 .ask-altlist-count {
+  margin-left: auto;
+  color: var(--ask-dim);
+  font-family: var(--ask-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+#askin-desktop-v1 .ask-unjudged-list { display: flex; flex-wrap: wrap; gap: 5px 8px; margin: 8px 0 0; padding: 0; list-style: none; }
+#askin-desktop-v1 .ask-unjudged-list li {
+  padding: 3px 8px;
+  border: 1px solid var(--ask-line);
+  border-radius: 999px;
+  color: var(--ask-dim);
+  font-size: 11px;
+}
+
+/* Narrow.dc.html 전용. 아트보드 폭 760px 는 프로토타입의 max-width:680px 보다 넓어
+   실제 뷰포트로는 그 미디어쿼리가 안 걸린다. 정적 목업이 680px 이하의 실제 모습을
+   보여줘야 해서, 같은 선택자·같은 값을 [data-force-narrow] 로 무조건 켠다.
+   새 레이아웃이 아니라 프로토타입 559~570줄 규칙의 재생이다. */
+#askin-desktop-v1[data-force-narrow] .ask-layout { grid-template-columns: 1fr; min-height: 0; }
+#askin-desktop-v1[data-force-narrow] .ask-sidebar { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; }
+#askin-desktop-v1[data-force-narrow] .ask-brand { grid-column: 1 / -1; }
+#askin-desktop-v1[data-force-narrow] .ask-sidebar-label { display: none; }
+#askin-desktop-v1[data-force-narrow] .ask-projects { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#askin-desktop-v1[data-force-narrow] .ask-add-project { margin: 0; }
+#askin-desktop-v1[data-force-narrow] .ask-main-panel,
+#askin-desktop-v1[data-force-narrow] .ask-chat-panel { min-height: 620px; }
+
+/* ── 레포트 재설계(2026-09-03). 프로토타입에 아직 없는 조각만 여기 둔다. ── */
+/* 내 하네스 요약 띠. 다섯 칸, 서로 더하지 않는다 */
+#askin-desktop-v1 .ask-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 0 0 10px; }
+#askin-desktop-v1 .ask-sum-tile { min-width: 0; padding: 9px 11px 8px; border: 1px solid var(--ask-line-soft); border-radius: 9px; background: var(--ask-bg); }
+#askin-desktop-v1 .ask-sum-label { color: var(--ask-faint); font-size: 11px; }
+#askin-desktop-v1 .ask-sum-value { margin-top: 1px; color: var(--ask-ink); font-size: 20px; font-weight: 500; line-height: 1.2; letter-spacing: -0.02em; }
+#askin-desktop-v1 .ask-sum-sub { overflow: hidden; margin-top: 2px; color: var(--ask-dim); font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+/* 아쉬운 점 */
+#askin-desktop-v1 .ask-weak-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; }
+#askin-desktop-v1 .ask-weak-heading .ask-findings-heading { margin: 0; }
+#askin-desktop-v1 .ask-count { margin-left: 4px; color: var(--ask-faint); font-family: var(--ask-mono); font-weight: 400; }
+#askin-desktop-v1 .ask-weak-meta { min-height: 28px; padding: 0 4px; font-size: 12px; font-weight: 400; }
+#askin-desktop-v1 .ask-chips { gap: 5px; color: var(--ask-dim); }
+#askin-desktop-v1 .ask-chip { padding: 1px 7px; border: 1px solid var(--ask-line); border-radius: 999px; color: var(--ask-dim); font-size: 11px; font-weight: 400; }
+#askin-desktop-v1 .ask-chip.is-tier { border-color: transparent; background: var(--ask-purple-soft); color: var(--ask-purple-ink); font-weight: 500; }
+#askin-desktop-v1 .ask-chip.is-check { color: var(--ask-ink); font-weight: 500; }
+#askin-desktop-v1 .ask-evidence { display: grid; gap: 2px; margin: 4px 0 0; color: var(--ask-dim); font-family: var(--ask-mono); font-size: 12px; }
+#askin-desktop-v1 .ask-evidence b { color: var(--ask-ink); font-weight: 500; }
+#askin-desktop-v1 .ask-caution { margin: 6px 0 0 !important; color: var(--ask-faint) !important; font-size: 12px; }
+#askin-desktop-v1 .ask-recommend { margin: 8px 0 0 !important; color: var(--ask-ink) !important; font-size: 13px; line-height: 1.5; }
+#askin-desktop-v1 .ask-recommend b { margin-right: 6px; color: var(--ask-purple-ink); font-weight: 500; }
+#askin-desktop-v1 .ask-finding-actions { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+#askin-desktop-v1 .ask-dismiss { font-size: 12px; font-weight: 400; }
+/* 세부 분석: 규칙(미터)과 습관(값·표본·설명) */
+#askin-desktop-v1 .ask-section-sum { margin: -2px 0 8px; color: var(--ask-faint); font-size: 11px; }
+#askin-desktop-v1 .ask-axis-list { gap: 9px; }
+#askin-desktop-v1 .ask-meter { overflow: hidden; height: 5px; margin: 4px 0 3px; border-radius: 3px; background: var(--ask-line-soft); }
+#askin-desktop-v1 .ask-meter i { display: block; height: 100%; border-radius: 3px; background: var(--ask-purple); }
+#askin-desktop-v1 .ask-rule.is-warn .ask-meter i { background: var(--ask-danger); }
+#askin-desktop-v1 .ask-rule.is-warn .ask-axis-value { color: var(--ask-danger); }
+#askin-desktop-v1 .ask-axis-value small { color: var(--ask-faint); font-size: 11px; }
+#askin-desktop-v1 .ask-habit-note { margin: 1px 0 0; color: var(--ask-faint); font-size: 11px; text-wrap: pretty; }
+#askin-desktop-v1 .ask-habit-rec { margin: 4px 0 0; color: var(--ask-ink); font-size: 11px; }
+#askin-desktop-v1 .ask-habit-rec b { margin-right: 4px; color: var(--ask-purple-ink); font-weight: 500; }
+#askin-desktop-v1 .ask-footnote { margin: 8px 0 0; color: var(--ask-faint); font-size: 11px; text-wrap: pretty; }
+/* 내 하네스 섹션. 현재 세션 패널과 같은 결의 헤더를 쓰고, 레포트와는 선으로 가른다 */
+#askin-desktop-v1 .ask-harness { flex: 0 0 auto; border-bottom: 1px solid var(--ask-line); }
+#askin-desktop-v1 .ask-harness-body { padding: 12px 15px 14px; }
+#askin-desktop-v1 .ask-harness .ask-map-legend { margin-left: auto; }
+#askin-desktop-v1 .ask-harness .ask-harness-map { min-height: 240px; }
+/* 1080 창에 카드 셋과 세부 분석 토글까지 들어오게 조인 값. 실측: 그래프 300·띠 80 이면 셋째 카드가 y=1130 에서 끝난다 */
+#askin-desktop-v1 .ask-summary { margin-bottom: 8px; }
+#askin-desktop-v1 .ask-sum-tile { padding: 6px 10px 6px; }
+#askin-desktop-v1 .ask-sum-value { font-size: 18px; }
+#askin-desktop-v1 .ask-weak h3 { margin-bottom: 3px; font-size: 16px; }
+#askin-desktop-v1 .ask-weak .ask-recommend { margin-top: 6px !important; }
+#askin-desktop-v1 .ask-weak .ask-finding-actions { margin-top: 6px; }
+#askin-desktop-v1 .ask-heading-note { color: var(--ask-faint); font-size: 11px; }
+/* 아쉬운 점 카드 두 열 */
+#askin-desktop-v1 .ask-weak-heading { margin-top: 0; }
+#askin-desktop-v1 .ask-weak-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; }
+#askin-desktop-v1 .ask-weak-grid .ask-weak { padding: 10px 2px; }
+#askin-desktop-v1[data-force-narrow] .ask-weak-grid { grid-template-columns: minmax(0, 1fr); }
+/* 어느 도구 기록에서 온 값인지. 글자 배지. 실제 로고(SVG)는 앱에서 자산으로 넣는다 */
+#askin-desktop-v1 .ask-detail-section h4 { display: flex; align-items: center; gap: 6px; }
+#askin-desktop-v1 .ask-src { display: inline-block; padding: 0 6px; border: 1px solid var(--ask-line); border-radius: 4px; color: var(--ask-dim); font-size: 10px; font-weight: 500; line-height: 16px; }
+#askin-desktop-v1 .ask-src.is-claude { border-color: #E3C9B8; color: #A65D3A; }
+#askin-desktop-v1 .ask-src.is-codex { border-color: var(--ask-line); color: var(--ask-ink); }
+/* 위 아쉬운 점 카드로 올라간 증상 표시 */
+#askin-desktop-v1 .ask-chip.is-up { margin-left: 6px; padding: 0 6px; border-color: transparent; background: var(--ask-purple-soft); color: var(--ask-purple-ink); font-size: 10px; vertical-align: 1px; }
+/* Handoff 아트보드 */
+#askin-desktop-v1 .ask-handoff { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 12px; align-items: start; }
+#askin-desktop-v1 .ask-handoff .ask-chat-panel { min-height: 700px; }
+#askin-desktop-v1 .ask-payload { margin-top: 12px; padding: 12px; border: 1px solid var(--ask-line-soft); border-radius: 9px; }
+#askin-desktop-v1 .ask-payload h4 { margin: 0 0 6px; font-size: 12px; font-weight: 500; }
+#askin-desktop-v1 .ask-payload ol { margin: 0; padding-left: 18px; color: var(--ask-dim); font-size: 12px; line-height: 1.55; }
+#askin-desktop-v1 .ask-payload code { color: var(--ask-ink); font-family: var(--ask-mono); font-size: 11px; }
+#askin-desktop-v1 .ask-caption { margin: 0 0 8px; color: var(--ask-faint); font-size: 12px; }
+#askin-desktop-v1 .ask-ctx { display: grid; gap: 3px; font-size: 11px; }
+#askin-desktop-v1 .ask-ctx b { color: var(--ask-ink); font-weight: 500; }
+</style><div class="ask-main-panel"><section class="ask-report has-result" aria-labelledby="ask-report-title"><header class="ask-panel-heading"><h2 class="ask-report-heading-label" id="ask-report-title">분석 레포트</h2><div class="ask-report-nav" aria-label="레포트 이동"><button class="ask-icon-button" type="button" aria-label="이전 레포트">‹</button><span class="ask-report-period">8월 1일 – 8월 31일</span><button class="ask-icon-button" type="button" aria-label="다음 레포트">›</button></div><span class="ask-panel-heading-meta">1 / 2</span></header><div class="ask-report-stage"><div class="ask-report-view ask-result is-visible"><div class="ask-weak-heading"><h3 class="ask-findings-heading">아쉬운 점 <span class="ask-count">3</span></h3><button class="ask-quiet ask-weak-meta" type="button">지키는 규칙 3 · 판정 불가 2 ›</button></div><div class="ask-weak-grid"><article class="ask-finding ask-weak"><div class="ask-finding-kicker ask-chips"><span class="ask-chip is-tier">반복</span><span class="ask-chip">이 저장소</span><span class="ask-chip">확실</span></div><h3>npm run desktop 을 7번 직접 쳤다</h3><div class="ask-evidence"><div>! npm run desktop  × 7 · 세션 2개 · 마지막 9월 3일</div><div>에이전트가 대신 돌린 적 0회 · 3번 이상 친 다른 명령 없음</div></div><p class="ask-recommend"><b>추천</b>자주 치는 명령은 스킬이나 훅으로 옮겨요. 세션마다 손으로 치던 일이 없어져요.</p><div class="ask-finding-actions"><button class="ask-secondary" type="button">채팅에서 고치기</button><button class="ask-quiet ask-dismiss" type="button">문제 아님</button></div></article><article class="ask-finding ask-weak"><div class="ask-finding-kicker ask-chips"><span class="ask-chip is-tier">깨진 것</span><span class="ask-chip">전역</span><span class="ask-chip">확실</span></div><h3>전역 스킬 심링크 3개가 없는 곳을 가리킨다</h3><div class="ask-evidence"><div>~/.claude/skills/next-best-practices → ../../.agents/skills/next-best-practices <b>(없음)</b></div><div>vercel-react-best-practices · web-design-guidelines 도 같은 폴더를 가리킨다 <b>(없음)</b></div></div><p class="ask-recommend"><b>추천</b>실물이 있는 저장소에서 옮겨 오거나 링크를 지우면, 스킬 목록에 이름만 있고 못 읽는 항목 3개가 없어져요. 전역이라 모든 프로젝트에서 같이 사라져요.</p><div class="ask-finding-actions"><button class="ask-secondary" type="button">채팅에서 고치기</button><button class="ask-quiet ask-dismiss" type="button">문제 아님</button></div></article><article class="ask-finding ask-weak"><div class="ask-finding-kicker ask-chips"><span class="ask-chip is-tier">깨진 것</span><span class="ask-chip">전역</span><span class="ask-chip is-check">확인 필요</span></div><h3>전역 CLAUDE.md:56 이 없는 경로를 가리킨다</h3><div class="ask-evidence"><div><b>origin/main</b> — git 이 아는 경로 어디에도 없음</div><div>원문: 작업 시작 전에 origin/main 위로 리베이스한다</div></div><p class="ask-caution">경로가 아닐 수도 있어요. 실측으로 이런 건 셋에 하나가 경로가 아니었어요.</p><p class="ask-recommend"><b>추천</b>경로인지 확인하고 옮겨진 것이면 새 경로로 고쳐요. 매 세션 읽는 규칙에서 헛길 1건이 없어져요.</p><div class="ask-finding-actions"><button class="ask-secondary" type="button">채팅에서 고치기</button><button class="ask-quiet ask-dismiss" type="button">문제 아님</button></div></article></div><button class="ask-details-toggle" type="button" aria-expanded="true"><span>−</span> 세부 분석 접기</button><div class="ask-details is-open"><div class="ask-details-grid"><section class="ask-detail-section"><h4>규칙 · 모델<span class="ask-src is-claude">Claude</span></h4><p class="ask-section-sum">2개 중 1개 지키는 중 · 1개는 잴 수 없었어요</p><ul class="ask-axis-list"><li class="ask-axis-item ask-rule"><div class="ask-axis-row"><span class="ask-axis-name">모델 명시</span><span class="ask-axis-value">27건 중 0건 위반 · 100%</span></div><div class="ask-meter" role="img" aria-label="100%"><i style="width:100%"></i></div><p class="ask-axis-why">~/.claude/CLAUDE.md:9  model 파라미터를 항상 명시한다</p></li><li class="ask-axis-item ask-rule is-muted"><div class="ask-axis-row"><span class="ask-axis-name">잡무 모델</span><span class="ask-axis-value">판정 불가</span></div><p class="ask-axis-why">runner 위임이 없어 못 잰다. 잡무를 위임하면 재요</p></li><li class="ask-axis-item is-muted"><div class="ask-axis-row"><span class="ask-axis-name">비용 차액 · API 요금 환산</span><span class="ask-axis-value">$0</span></div><p class="ask-axis-why">위반이 없어 차액이 없어요. 월 단위로 환산해요</p></li></ul></section><section class="ask-detail-section"><h4>관찰값 · 위임과 세션<span class="ask-src is-claude">Claude</span></h4><p class="ask-section-sum">목표가 없는 값이에요. 추세로만 봐요</p><ul class="ask-axis-list"><li class="ask-axis-item ask-habit"><div class="ask-axis-row"><span class="ask-axis-name">병렬 비율</span><span class="ask-axis-value">45.0% <small>· 표본 20</small></span></div><p class="ask-habit-note">한 번 띄울 때 두 갈래 이상으로 나눈 비율</p></li><li class="ask-axis-item ask-habit"><div class="ask-axis-row"><span class="ask-axis-name">평균 갈래</span><span class="ask-axis-value">2.25 <small>· 표본 20</small></span></div><p class="ask-habit-note">디스패치 한 번당 평균 갈래 수. 1.0 이면 병렬을 전혀 안 쓴 것</p></li><li class="ask-axis-item ask-habit"><div class="ask-axis-row"><span class="ask-axis-name">위임률</span><span class="ask-axis-value">11.1% <small>· 표본 6</small></span></div><p class="ask-habit-note">서브에이전트가 쓴 토큰 비율. 높다고 잘 쓴 게 아니다</p><ul class="ask-axis-detail"><li><span>위임을 쓴 세션</span><span>2/6</span></li></ul></li><li class="ask-axis-item ask-habit"><div class="ask-axis-row"><span class="ask-axis-name">서브에이전트 결말</span><span class="ask-axis-value">0.0% <small>· 표본 42</small></span></div><p class="ask-habit-note">끝난 상태를 아는 위임 중 completed 가 아닌 비율</p><ul class="ask-axis-detail"><li><span>completed</span><span>42</span></li></ul></li><li class="ask-axis-item ask-habit"><div class="ask-axis-row"><span class="ask-axis-name">가드 차단</span><span class="ask-axis-value">2.01 <small>· 표본 149</small></span></div><p class="ask-habit-note">100턴당 몇 번 막혔나. user-rejected 는 사람이 막은 것</p><ul class="ask-axis-detail"><li><span>합계</span><span>3건</span></li><li><span>user-rejected</span><span>2</span></li><li><span>automode-unavailable</span><span>1</span></li></ul></li><li class="ask-axis-item ask-habit"><div class="ask-axis-row"><span class="ask-axis-name">지금 도는 세션</span><span class="ask-axis-value">1 <small>· 표본 6</small></span></div><p class="ask-habit-note">최근 15분 안에 전사가 자란 세션. 시점 값이라 추세가 없다</p></li></ul><p class="ask-footnote">주별 추세는 위임이 2주 이상 쌓이면 병렬 비율·평균 갈래·서브에이전트 결말에 그려요. 지금은 한 주뿐이에요.</p></section><section class="ask-detail-section"><h4>캐싱<span class="ask-src is-claude">Claude</span></h4><ul class="ask-axis-list"><li class="ask-axis-item ask-habit"><div class="ask-axis-row"><span class="ask-axis-name">캐시 적중률</span><span class="ask-axis-value">98.0% <small>· 표본 6</small></span></div><p class="ask-habit-note">다시 읽은 문맥의 비율. 낮아지면 문맥이 자주 깨지고 있다는 뜻</p></li><li class="ask-axis-item ask-habit"><div class="ask-axis-row"><span class="ask-axis-name">캐시 읽기 없는 턴</span><span class="ask-axis-value">0.64% <small>· 표본 2,040턴</small></span></div><p class="ask-habit-note">문맥이 처음부터 다시 쌓인 턴. 메인 세션만</p></li></ul><p class="ask-footnote">Codex 기록은 아직 안 섞였어요. 섞으면 축의 뜻이 바뀌어 옛 레포트와 비교하지 않아요.</p></section><section class="ask-detail-section"><h4>훅<span class="ask-src is-claude">Claude</span></h4><p class="ask-section-sum">실행 9,638회 · 이벤트 64종 · 실패 0</p><ul class="ask-axis-list"><li class="ask-axis-item ask-rule"><div class="ask-axis-row"><span class="ask-axis-name">훅 무결성</span><span class="ask-axis-value">201건 중 0건 위반 · 100%</span></div><div class="ask-meter" role="img" aria-label="100%"><i style="width:100%"></i></div><p class="ask-axis-why">훅이 조용히 실패하면 규칙이 안 지켜져도 아무도 모른다</p></li><li class="ask-axis-item ask-habit"><div class="ask-axis-row"><span class="ask-axis-name">턴 마무리 훅 시간</span><span class="ask-axis-value">403ms <small>· 표본 152</small></span></div><p class="ask-habit-note">턴이 끝날 때 Stop 훅 묶음이 먹는 평균 시간</p><ul class="ask-axis-detail"><li><span>stop-review-gate-hook.mjs</span><span>98ms × 148회</span></li><li><span>gk</span><span>96ms × 148회</span></li><li><span>stop.py</span><span>71ms × 148회</span></li><li><span>handoff.py</span><span>58ms × 148회</span></li><li><span>on-stop.sh</span><span>35ms × 148회</span></li><li><span>claude-hook.sh</span><span>42ms × 100회</span></li><li><span>claude-hook.sh (2)</span><span>52ms × 48회</span></li></ul><p class="ask-habit-rec"><b>추천</b>가장 무거운 stop-review-gate-hook.mjs 를 가볍게 하면 턴마다 최대 98ms 를 아껴요.</p></li></ul></section><section class="ask-detail-section"><h4>반복 행동<span class="ask-src is-claude">Claude</span></h4><p class="ask-section-sum">손으로 친 명령 8건 2종 · 3번 이상만 아쉬운 점으로 올려요</p><ul class="ask-axis-list"><li class="ask-axis-item"><div class="ask-axis-row"><span class="ask-axis-name">! npm run desktop<span class="ask-chip is-up">아쉬운 점</span></span><span class="ask-axis-value">7회</span></div><p class="ask-axis-why">세션 2개 · 마지막 9월 3일 · 에이전트가 대신 돌린 적 0회</p></li><li class="ask-axis-item is-muted"><div class="ask-axis-row"><span class="ask-axis-name">! brew install rust</span><span class="ask-axis-value">1회</span></div></li></ul></section><section class="ask-detail-section"><h4>깨진 링크와 정의</h4><p class="ask-section-sum">잡을 수 있는 증상 7가지 중 2가지가 나왔어요</p><ul class="ask-axis-list"><li class="ask-axis-item"><div class="ask-axis-row"><span class="ask-axis-name">문서가 가리키는데 없는 경로<span class="ask-chip is-up">아쉬운 점</span></span><span class="ask-axis-value">1건</span></div><p class="ask-axis-why">CLAUDE.md:56  origin/main · 경로가 아닐 수도 있어요</p></li><li class="ask-axis-item is-muted"><div class="ask-axis-row"><span class="ask-axis-name">선언했는데 없는 스킬</span><span class="ask-axis-value">0건</span></div></li><li class="ask-axis-item"><div class="ask-axis-row"><span class="ask-axis-name">스킬 디렉터리의 깨진 심링크<span class="ask-chip is-up">아쉬운 점</span></span><span class="ask-axis-value">3건</span></div><p class="ask-axis-why">전역 · next-best-practices 외 2개</p></li><li class="ask-axis-item is-muted"><div class="ask-axis-row"><span class="ask-axis-name">근거가 사라진 축</span><span class="ask-axis-value">0건</span></div></li><li class="ask-axis-item is-muted"><div class="ask-axis-row"><span class="ask-axis-name">모순 후보</span><span class="ask-axis-value">0건</span></div><p class="ask-axis-why">하네스 문서 3개를 쌍으로 봤어요</p></li><li class="ask-axis-item ask-rule"><div class="ask-axis-row"><span class="ask-axis-name">하네스 활용</span><span class="ask-axis-value">1건 중 0건 위반 · 100%</span></div><div class="ask-meter" role="img" aria-label="100%"><i style="width:100%"></i></div><p class="ask-axis-why">~/.claude/CLAUDE.md:72  안 쓰이는 규칙은 걷어낸다 · 정의 1개 모두 호출됨 · 전체 기간</p></li><li class="ask-axis-item ask-rule is-muted"><div class="ask-axis-row"><span class="ask-axis-name">스킬 선언 무결성</span><span class="ask-axis-value">판정 불가</span></div><p class="ask-axis-why">에이전트가 선언한 스킬이 없어 못 잰다. 정의에 skills: 를 적으면 재요</p></li></ul></section><section class="ask-detail-section"><h4>한도<span class="ask-src is-codex">Codex</span></h4><p class="ask-section-sum">계정 단위라 전역으로 재요. 창이 굴러가서 고정 사이클이 없어 5시간·1주 단위로 잘라 근사해요</p><ul class="ask-axis-list"><li class="ask-axis-item"><div class="ask-axis-row"><span class="ask-axis-name">5시간 한도를 다 쓴 구간</span><span class="ask-axis-value">99개 중 2개 · 2.0%</span></div><p class="ask-axis-why">작업한 5시간 구간 중 100% 까지 간 구간</p></li><li class="ask-axis-item"><div class="ask-axis-row"><span class="ask-axis-name">주간 한도를 다 쓴 주</span><span class="ask-axis-value">24주 중 1주 · 4.2%</span></div><p class="ask-axis-why">80% 를 넘긴 주는 3주</p></li><li class="ask-axis-item"><div class="ask-axis-row"><span class="ask-axis-name">지금</span><span class="ask-axis-value">5시간 52% · 주간 44%</span></div><p class="ask-axis-why">시점 값이라 추세가 없다</p></li></ul></section><section class="ask-detail-section" style="grid-column:1 / -1"><h4>무엇을 봤나<span class="ask-src is-claude">Claude</span><span class="ask-src is-codex">Codex</span></h4><ul class="ask-axis-list"><li class="ask-axis-item"><div class="ask-axis-row"><span class="ask-axis-name">Claude</span><span class="ask-axis-value">세션 6개 · 위임 45건 · 전사 1,166개</span></div></li><li class="ask-axis-item"><div class="ask-axis-row"><span class="ask-axis-name">Codex</span><span class="ask-axis-value">세션 4개 · token_count 255줄</span></div></li><li class="ask-axis-item"><div class="ask-axis-row"><span class="ask-axis-name">하네스</span><span class="ask-axis-value">에이전트 정의 1개 · 스킬 295개(전역 포함) · 하네스 문서 2개 · 기간 전체</span></div></li></ul></section></div></div></div></div></section></div></div>
+</x-dc>
+</body>
+</html>

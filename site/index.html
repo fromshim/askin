@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="AI에게 적어둔 규칙, 실제로 지켜지고 있을까요? askin은 Claude Code와 Codex의 작업 기록을 로컬에서 읽고, 하네스 연결과 고칠 곳을 보여줘요.">
+  <meta property="og:title" content="askin — 내가 만든 하네스, 제대로 알고 쓰기">
+  <meta property="og:description" content="규칙과 실제 작업 사이를 살펴보세요. AI 코딩 에이전트를 위한 로컬 하네스 점검 도구.">
+  <meta property="og:type" content="website">
+  <title>askin — 내가 만든 하네스, 제대로 알고 쓰기</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <script src="main.js" defer></script>
+  <script src="motion.js" type="module"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문 바로가기</a>
+  <header class="header">
+    <div class="wrap header-inner">
+      <a class="wordmark" href="#" aria-label="askin 처음으로"><img class="brand-symbol" src="assets/askin-logo.png" alt="" aria-hidden="true"><span>askin</span></a>
+      <nav aria-label="주요 메뉴">
+        <a href="#look">살펴보기</a>
+        <a href="#principles">작동 방식</a>
+        <a class="header-action" href="#start">설치 안내 <svg aria-hidden="true"><use href="assets/icons.svg#arrow-up-right"/></svg></a>
+      </nav>
+      <button class="theme-toggle" type="button" hidden aria-label="어두운 화면으로 전환"><svg aria-hidden="true"><use href="assets/icons.svg#moon"/></svg></button>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title">규칙은 적었는데,<br>잘 지키고 있을까요?</h1>
+        <p class="hero-description">askin은 AI의 작업 기록을 읽고,<br class="desktop-break"> 내가 만든 하네스가 어떻게 쓰이는지 보여줘요.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#look">내 하네스 살펴보기 <svg aria-hidden="true"><use href="assets/icons.svg#arrow-down"/></svg></a>
+          <a class="text-link" href="#start">macOS 설치 안내 <svg aria-hidden="true"><use href="assets/icons.svg#arrow-up-right"/></svg></a>
+        </div>
+        <p class="compatibility">Claude Code · Codex 작업 기록을 내 컴퓨터에서</p>
+      </div>
+      <div class="graph-demo" aria-label="하네스 연결 설명용 예시">
+        <div class="graph-caption"><span>내 프로젝트의 연결</span><span>설명용 예시</span></div>
+        <div class="harness-scene" aria-label="커서에 반응하는 하네스 연결 그래프">
+          <canvas class="scene-canvas" aria-hidden="true"></canvas>
+          <svg class="scene-fallback" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path data-kind="agent" d="M48 49 Q30 37 20 25 M48 49 Q64 37 78 28"/>
+            <path data-kind="skill" d="M48 49 Q33 57 22 73"/>
+            <path data-kind="mcp" d="M48 49 Q70 54 82 69"/>
+            <path class="declaration" d="M20 25 Q42 4 56 14 M48 49 Q45 71 53 85 M78 28 Q95 47 82 69"/>
+          </svg>
+          <span class="map-node map-project" data-point="project" data-kind="agent" data-depth="0.45" style="--x:48%;--y:49%"><span class="map-disc"></span><span class="map-label">내 프로젝트</span></span>
+          <button class="map-node" data-node="agent" data-point="agent" data-kind="agent" data-depth="0.9" style="--x:20%;--y:25%"><span class="map-disc"></span><span class="map-label">main agent</span></button>
+          <button class="map-node" data-node="reviewer" data-point="reviewer" data-kind="agent" data-depth="0.7" style="--x:78%;--y:28%"><span class="map-disc"></span><span class="map-label">reviewer</span></button>
+          <button class="map-node" data-node="skill" data-point="skill" data-kind="skill" data-depth="1" style="--x:22%;--y:73%"><span class="map-disc"></span><span class="map-label">project skill</span></button>
+          <button class="map-node" data-node="mcp" data-point="mcp" data-kind="mcp" data-depth="0.8" style="--x:82%;--y:69%"><span class="map-disc"></span><span class="map-label">filesystem</span></button>
+          <button class="map-node map-small" data-node="docs" data-point="docs" data-kind="skill" data-depth="0.55" style="--x:56%;--y:14%"><span class="map-disc"></span><span class="map-label">docs skill</span></button>
+          <button class="map-node map-small" data-node="qa" data-point="qa" data-kind="agent" data-depth="0.65" style="--x:53%;--y:85%"><span class="map-disc"></span><span class="map-label">QA agent</span></button>
+        </div>
+        <p class="scene-hint" aria-hidden="true">커서를 움직이며 연결을 살펴보세요.</p>
+        <div class="graph-legend"><span><i class="agent-color"></i>에이전트</span><span><i class="skill-color"></i>스킬</span><span><i class="mcp-color"></i>MCP</span></div>
+        <div class="graph-explanation" role="status" aria-live="polite"><span id="node-title">적어둔 연결과 실제 쓴 연결</span><p id="node-description">실선은 실제 호출, 점선은 선언한 연결이에요. 이름을 누르면 역할을 볼 수 있어요.</p></div>
+      </div>
+      <div class="hero-footnote"><span>규칙 문서 · 에이전트 · 스킬 · 훅 · MCP</span><p>AI에게 정해준 일하는 방식, 그 전부가 하네스예요.</p></div>
+    </section>
+
+    <section id="look" class="look-section section wrap" aria-labelledby="look-title">
+      <div class="section-heading"><h2 id="look-title">설정 파일 너머,<br>실제로 일한 흔적까지.</h2><p>폴더 하나를 고르면 시작돼요. 흩어진 정의와 작업 기록을 모아 연결을 그리고, 먼저 살펴볼 곳을 짚어요.</p></div>
+      <figure class="app-figure">
+        <a class="screenshot-link" href="assets/shots/app-current.png" target="_blank" rel="noopener" aria-label="현재 askin 앱 화면 원본 보기 (새 탭)"><img src="assets/shots/app-current.png" width="3024" height="1734" loading="lazy" decoding="async" alt="실제 askin 앱. 왼쪽에는 프로젝트 목록, 가운데에는 에이전트·스킬·MCP 연결 그래프와 먼저 고칠 경로의 원문이 표시돼요."></a>
+        <figcaption><span>현재 macOS 앱 화면 · 개발 중</span><a href="assets/shots/app-current.png" target="_blank" rel="noopener">크게 보기 <svg aria-hidden="true"><use href="assets/icons.svg#expand"/></svg></a></figcaption>
+      </figure>
+      <div class="feature-notes"><div><h3>어디에 연결돼 있는지</h3><p>에이전트와 스킬, MCP가 어떻게 이어지는지 보여줘요. 선언한 연결과 실제 호출을 구분해서 볼 수 있어요.</p></div><div><h3>무엇이 어긋났는지</h3><p>지키지 않은 규칙과 끊어진 참조를 찾아요. 어느 파일의 어떤 원문인지 확인하고, 고칠지 판단할 수 있어요.</p></div></div>
+    </section>
+
+    <section id="principles" class="section principles wrap" aria-labelledby="principles-title">
+      <div class="principles-intro"><h2 id="principles-title">그럴듯한 점수보다<br>확인할 수 있는 근거.</h2><p>잘하고 있다는 숫자 하나로는 무엇을 고쳐야 할지 알 수 없으니까요.</p></div>
+      <div class="principle-list">
+        <article><h3>분모까지 같이 봐요.</h3><p>위임 40건 중 6건에서 모델을 정하지 않았어요. 어느 기록에서 어긋났는지 보여주고, 서로 다른 지표를 종합 점수로 더하지 않아요.</p><p class="source-note">만든 사람의 기록에서 · 2026. 09. 04.</p><div class="evidence" aria-label="위임 40건 중 모델을 지정하지 않은 6건의 실측 예시"><div class="evidence-dots" aria-hidden="true"></div><span><strong>6 / 40</strong> 모델 미지정</span></div></article>
+        <article><h3>모르면, 모른다고 말해요.</h3><p>기록이 부족하면 0점 대신 ‘판정 불가’라고 말해요. 끊어진 경로처럼 보여도 실제로는 Git 참조일 수 있어요. 확인이 필요한 이유까지 남겨요.</p></article>
+        <article><h3>기록은 내 컴퓨터에 있어요.</h3><p>Claude Code와 Codex의 작업 기록을 로컬에서 읽어요. 분석을 위해 대화를 서버에 올리지 않고, 원본 기록을 수정하지 않아요.</p></article>
+      </div>
+    </section>
+
+    <section class="section next-section wrap" aria-labelledby="next-title">
+      <div><h2 id="next-title">고칠 곳을 찾았다면,<br>다음 작업으로.</h2><p>CLI는 고칠 파일이 겹치지 않게 작업을 나누고, 끝난 뒤 확인할 내용까지 지시서로 정리해요.</p><p class="next-note">askin이 코드를 직접 고치지는 않아요.<br>지시서를 받은 Claude나 Codex가 수정을 맡아요.</p></div>
+      <div class="command-panel"><div class="command-heading"><span>터미널에서 지시서 만들기</span><span>CLI</span></div><div class="command-line"><code id="plan-command">node src/report.mjs --plan</code><button class="copy-button" type="button" hidden aria-label="지시서 생성 명령 복사"><svg aria-hidden="true"><use href="assets/icons.svg#copy"/></svg></button></div><p>저장소를 받은 뒤, 저장소 폴더에서 실행해요.</p><div class="copy-status" role="status" aria-live="polite"></div><div class="in-progress"><h3>채팅으로 이어지는 흐름도 만들고 있어요.</h3><p>앱 안에서 ‘채팅에서 고치기’로 바로 넘기는 기능과 반복 명령 분석은 구현 중이에요.</p></div></div>
+    </section>
+
+    <section id="start" class="start-section section wrap" aria-labelledby="start-title">
+      <div><h2 id="start-title">내가 만든 하네스,<br>제대로 알고 쓰기.</h2><p>macOS · Apple Silicon</p></div>
+      <div class="download-panel"><span class="download-label">macOS 다운로드 준비 중</span><p>앱 배포 링크를 준비하고 있어요.<br>공개되면 이곳에서 받을 수 있어요.</p><p class="install-note">현재 빌드는 서명되지 않았어요. 처음 실행할 때 우클릭 → 열기가 필요할 수 있어요.</p></div>
+    </section>
+  </main>
+  <footer class="footer wrap"><a class="wordmark" href="#" aria-label="askin 처음으로"><img class="brand-symbol" src="assets/askin-logo.png" alt="" aria-hidden="true"><span>askin</span></a><p>AI가 일하는 방식을, 조금 더 내 뜻대로.</p><a href="#main">맨 위로 <svg aria-hidden="true"><use href="assets/icons.svg#arrow-up"/></svg></a></footer>
+</body>
+</html>

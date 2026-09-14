@@ -1,0 +1,31 @@
+# askin 을 macOS 앱(.app/.dmg/.zip)으로 묶는 설정. 서명·노터라이즈는 안 한다(identity: null).
+#
+# files 는 최소만 담는다:
+# - desktop/app/**            메인 프로세스·렌더러·preload
+# - desktop/askin-desktop-prototype.html  preload.mjs 가 fs.readFileSync 로 직접 읽어서
+#   CSS 를 뽑는 파일이다(desktop/app 밖에 있다 — 실측: 빼면 렌더러가 스타일 없이 뜬다)
+# - src/**                    report.mjs 등 main.mjs 가 import 하는 저장소 로직
+# - node_modules/**           graphology·sigma·forceatlas2 (dependencies 로 옮긴 것만 남는다).
+#   index.html 이 <script src="../../node_modules/..."> 로 graphology·sigma UMD 를 직접
+#   불러오므로 이 경로가 패키지 안에도 그대로 있어야 한다.
+appId: app.askin
+productName: askin
+directories:
+  output: dist
+files:
+  - desktop/app/**/*
+  - desktop/askin-desktop-prototype.html
+  - src/**/*
+  - package.json
+  - node_modules/**/*
+asar: true
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+    - target: zip
+      arch:
+        - arm64
+  identity: null
+  category: public.app-category.developer-tools

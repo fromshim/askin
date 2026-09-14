@@ -1,0 +1,33 @@
+{
+  "name": "harness-bro",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Code 하네스를 점검하고 고치는 루프. 데스크톱 앱 이름은 askin이다",
+  "main": "desktop/app/main.mjs",
+  "bin": {
+    "harness-bro": "./src/report.mjs"
+  },
+  "scripts": {
+    "test": "HARNESS_BRO_CACHE=\"${TMPDIR:-/tmp}/harness-bro-test-cache\" node --test \"test/*.test.mjs\"",
+    "report": "node src/report.mjs",
+    "desktop": "electron desktop/app/main.mjs",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --mac"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "graphology": "^0.25.4",
+    "graphology-layout-forceatlas2": "^0.10.1",
+    "sigma": "^3.0.1"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

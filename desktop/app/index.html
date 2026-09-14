@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>askin</title>
+<style id="ask-proto-css"></style>
+<script>
+  // 프로토타입 CSS(#askin-desktop-v1 블록)는 여기 복사해 넣지 않는다. preload.mjs 가
+  // desktop/askin-desktop-prototype.html 을 파일로 읽어 추출한 텍스트를 contextBridge 로
+  // 이미 window.askin.protoCss 에 실어뒀다 — 그걸 페이지 파싱 중(비동기 insertCSS 를 기다리지
+  // 않고) 바로 <style> 에 넣는다. 클래식 스크립트라 아래 body 파싱보다 먼저, 동기로 돈다.
+  document.getElementById('ask-proto-css').textContent = window.askin.protoCss
+</script>
+<style>
+  /* 프로토타입에 없는 데스크톱 전용 확장. #askin-desktop-v1 자체의 값(색·간격·타입)은
+     위에서 주입한 프로토타입 CSS 가 전부 정의한다 — 여기는 그 CSS 가 안 다루는 것만 최소로. */
+  html, body { margin: 0; height: 100%; }
+  /* 프로토타입 CSS 가 .ask-details-toggle 등에 display 를 직접 준다. 그러면 hidden 속성이
+     조용히 무시된다 — 실측: 레포트가 아직 없을 때 "세부 분석 펼치기"가 그대로 보였다. */
+  #askin-desktop-v1 [hidden] { display: none !important; }
+  #askin-desktop-v1 {
+    /* 프로토타입 CSS 가 주입되기 전에도 color-scheme 이 필요한 값(--ask-edge)이 있어서
+       중복 선언한다. 프로토타입이 같은 값을 다시 선언해도 충돌 없다(같은 값). */
+    color-scheme: light dark;
+    /* 하네스 그래프 전용 엣지 색. desktop/design-concept.md "렌더러에서 실측으로 걸린 것":
+       --ask-line 을 그대로 쓰면 라이트에서 흰 배경에 거의 안 보여서 그래프 전용으로 뗐다. */
+    --ask-edge: light-dark(#B7B7C0, #4A4A52);
+    height: 100%;
+  }
+  /* 그리드가 암묵 행(auto)이라 자식들의 콘텐츠 높이 합이 창 높이를 넘으면 그리드 자체가
+     같이 늘어나(overflow) 아래쪽(그래프)이 뷰포트 밖으로 밀려난다 — 실측으로 걸렸다. 행을
+     1fr 로 명시하고 min-height:0 을 같이 줘야("min-height:0 트릭") 실제로 창 높이에서 멎는다. */
+  #askin-desktop-v1 .ask-layout {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    /* 폭 드래그는 앱 전용 동작이라 프로토타입엔 없다(프로토타입은 정적 데모). 사이드바·채팅
+       칸을 --ask-sidebar-w/--ask-chat-w 로 바꿔치기하고, 그 사이에 핸들이 앉을 8px 칸을
+       둘 뒀다 — 프로토타입의 gap:8px(desktop/tokens.md --shell-gap)과 같은 폭이라 핸들이
+       생겨도 패널 사이 간격이 안 벌어진다. gap 은 그래서 0 으로 낮춘다. var() 의 두 번째
+       인자는 renderer.mjs 가 아직 아무 폭도 저장하지 않았을 때만 쓰이는 프로토타입 기본값(200/238)
+       이다 — 드래그해서 폭을 한 번 저장하면 그 값이 이 미디어쿼리 안팎을 가리지 않고 그대로 쓰인다. */
+    grid-template-columns: var(--ask-sidebar-w, 200px) 8px minmax(320px, 1fr) 8px var(--ask-chat-w, 238px);
+    gap: 0;
+  }
+  @media (min-width: 920px) {
+    /* 프로토타입의 같은 미디어쿼리(220px/300px)를 var() 폴백에만 반영한 앱 전용 버전.
+       위 기본 규칙과 마찬가지로 사용자가 드래그한 값이 있으면 그게 이긴다. */
+    #askin-desktop-v1 .ask-layout { grid-template-columns: var(--ask-sidebar-w, 220px) 8px minmax(320px, 1fr) 8px var(--ask-chat-w, 300px); }
+  }
+  #askin-desktop-v1 .ask-sidebar,
+  #askin-desktop-v1 .ask-main-panel,
+  #askin-desktop-v1 .ask-chat-panel { min-height: 0; }
+  /* 스크롤은 유지하고 막대만 감춘다. 다른 패널은 지금 세로 스크롤이 안 생겨(overflow 선언이
+     없다) 이 규칙의 영향을 안 받는다. Electron 은 Chromium 이라 ::-webkit-scrollbar 가 실제로
+     듣는다 — scrollbar-width 는 다른 엔진을 위한 보험이다. */
+  #askin-desktop-v1 .ask-sidebar {
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  #askin-desktop-v1 .ask-sidebar::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+  /* 리사이즈 핸들. `...`을 세로로 돌린 모양을 이 저장소 관례대로 이모지·문자 대신 작은 원
+     세 개로 그린다(지시서 지침). 평소엔 흐리고 hover·focus·드래그 중엔 진해진다. */
+  #askin-desktop-v1 .ask-resize-handle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    cursor: col-resize;
+  }
+  #askin-desktop-v1 .ask-resize-handle span {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--ask-faint);
+    opacity: .35;
+    transition: opacity 120ms cubic-bezier(.2, 0, 0, 1), background-color 120ms cubic-bezier(.2, 0, 0, 1);
+  }
+  #askin-desktop-v1 .ask-resize-handle:hover span,
+  #askin-desktop-v1 .ask-resize-handle:focus-visible span,
+  #askin-desktop-v1 .ask-resize-handle.is-dragging span {
+    opacity: .9;
+    background: var(--ask-dim);
+  }
+  #askin-desktop-v1 .ask-resize-handle:focus-visible { outline: 2px solid var(--ask-purple); outline-offset: 2px; }
+
+  /* 팝오버 종류별 차이(desktop/app/renderer.mjs openPopover 참고)에 쓰는 확장. 프로토타입은
+     넷 다 같은 칸(모델·호출·최근)을 보여주는 정적 데모라 이 갈래가 없다. 모델 단일값 칸이
+     "이름 — 횟수" 목록(모델별 호출 수 / 호출 주체)으로 바뀌면서 통계 칸은 이제 늘
+     2열(호출·최근 또는 구성·최근)이다. */
+  #askin-desktop-v1 .ask-popover-stats.is-two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #askin-desktop-v1 .ask-popover-callers {
+    display: grid;
+    gap: 3px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--ask-dim);
+    font-size: 11px;
+    /* 목록이 길어질 때. 실측(2026-09-02): 에이전트 모델은 많아야 셋, 스킬·MCP 호출 주체도
+       넷을 안 넘었다 — 5줄까지는 다 보이고, 그 이상은 팝오버 폭(280px)을 안 늘리고 스크롤로
+       받는다. 사이드바(위 .ask-sidebar)와 같은 방식으로 막대만 감춘다. */
+    max-height: 92px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  #askin-desktop-v1 .ask-popover-callers::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  /* project 팝오버 구성 목록 하단, 모델별 세션 수 목록의 틀(정정 지시서, 2026-09-02 —
+     "N종류 · 이름들" 한 줄에서 이름-수 목록으로 바뀌었다). 위 구성 목록과 겹쳐 보이지
+     않게 얇은 선으로 구분한다. */
+  #askin-desktop-v1 .ask-popover-model-summary { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--ask-edge); }
+  /* .ask-popover-head small(이름 밑 scope 표시)과 같은 얕은 글자다 — 새 시각 언어를 안
+     만들고 이미 쓰는 결을 반복한다. */
+  #askin-desktop-v1 .ask-popover-model-caption { margin: 0 0 4px; color: var(--ask-faint); font-size: 11px; }
+  /* 안의 목록(#ask-popover-model-list)은 .ask-popover-callers 를 그대로 재사용해 위 구성
+     목록과 같은 grid/li 모양을 쓴다 — 별도 규칙이 필요 없다. */
+  #askin-desktop-v1 .ask-popover-callers li { display: flex; justify-content: space-between; gap: 8px; }
+  /* 그래프가 창의 남은 세로 공간을 끝까지 채운다("메인 패널은 끝까지 남는다"). 프로토타입은
+     이 아래에 우선 고칠 것 목록이 이어져서 고정 min-height(330px)만 있었다 — 여기는
+     그래프가 이 화면의 전부라 채워야 자리가 안 빈다. */
+  /* flex:1 을 쓴 중첩 체인 전부 min-height:0 이 필요하다. 기본값(auto)은 콘텐츠 높이를
+     바닥으로 삼아서 줄어들지 않는다 — 프로토타입은 원래 페이지 스크롤을 전제로 만들어져
+     이 문제가 없었지만, 창에 딱 맞춰야 하는 여기서는 체인 전부에 걸어야 한다. */
+  #askin-desktop-v1 .ask-report,
+  #askin-desktop-v1 .ask-report-stage,
+  #askin-desktop-v1 .ask-report-view.is-visible { min-height: 0; }
+  /* 레포트가 그래프 아래에 붙으면서 이 칸이 창 높이를 넘는다. 스크롤은 결과 칸이 받는다 —
+     그래프가 flex:1 로 남아 있으면 스크롤 컨테이너 안에서 높이가 안 정해져 찌그러진다. */
+  #askin-desktop-v1 .ask-report-view.is-visible { overflow-y: auto; scrollbar-width: none; }
+  #askin-desktop-v1 .ask-report-view.is-visible::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  /* 내 하네스 섹션 안 그래프. 요약 띠(다섯 칸)와 같이 있어야 해서 380px 대신 240px 로 줄인다
+     (지시서: "그래프 높이 240px"). */
+  #ask-harness-map { flex: 0 0 auto; height: 240px; }
+  #ask-sigma-container { position: absolute; inset: 0; }
+  #ask-declared-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .ask-report-note { margin: 10px 2px 0; color: var(--ask-faint); font-size: 12px; }
+  /* 레포트가 그래프 아래에 붙으면서 이 칸이 창 높이를 넘는다. 스크롤은 결과 칸이 받는다.
+     축 목록 스타일은 프로토타입(desktop/askin-desktop-prototype.html)이 정의한다 — 앱과
+     목업이 같은 CSS 를 쓴다. 여기 남는 것은 창 크기에 매인 규칙뿐이다. */
+  #askin-desktop-v1 .ask-report-body { overflow-y: auto; scrollbar-width: none; }
+  #askin-desktop-v1 .ask-report-body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  .ask-sidebar-empty { padding: 8px 9px; color: var(--ask-faint); font-size: 12px; line-height: 1.5; }
+  /* 제거 버튼은 항목 위에 겹쳐 놓는다. .ask-project 가 <button> 이라 그 안에 버튼을 또 넣으면
+     안 되는(중첩 버튼) 마크업이 된다 — 형제로 두고 행을 relative 로 감싼다. 평소엔 안 보이고
+     hover·포커스에서만 나온다. 키보드로도 닿아야 해서 opacity 만 0 으로 두고 크기는 남긴다. */
+  #askin-desktop-v1 .ask-project-row { position: relative; display: grid; min-width: 0; }
+  #askin-desktop-v1 .ask-project-row .ask-project { width: 100%; padding-right: 26px; }
+  #askin-desktop-v1 .ask-project-remove {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ask-faint);
+    font-size: 13px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 120ms cubic-bezier(.2, 0, 0, 1), color 120ms cubic-bezier(.2, 0, 0, 1);
+  }
+  #askin-desktop-v1 .ask-project-row:hover .ask-project-remove,
+  #askin-desktop-v1 .ask-project-remove:focus-visible { opacity: 1; }
+  #askin-desktop-v1 .ask-project-remove:hover { color: var(--ask-dim); }
+  .ask-project-harness { flex: 0 0 auto; color: var(--ask-faint); font-size: 10px; }
+  .ask-chat-placeholder, .ask-session-placeholder {
+    display: flex; flex: 1; align-items: center; justify-content: center;
+    color: var(--ask-dim); font-size: 12px; text-align: center; padding: 20px;
+  }
+
+  /* ── 레포트 재설계(2026-09-03). desktop/canvas/gen.py 의 EXTRA_CSS 에서 그대로 옮긴다.
+     클래스명·값을 바꾸지 않는다 — 정본은 gen.py 다. ── */
+  /* 내 하네스 요약 띠. 다섯 칸, 서로 더하지 않는다 */
+  #askin-desktop-v1 .ask-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 0 0 10px; }
+  #askin-desktop-v1 .ask-sum-tile { min-width: 0; padding: 9px 11px 8px; border: 1px solid var(--ask-line-soft); border-radius: 9px; background: var(--ask-bg); }
+  #askin-desktop-v1 .ask-sum-label { color: var(--ask-faint); font-size: 11px; }
+  #askin-desktop-v1 .ask-sum-value { margin-top: 1px; color: var(--ask-ink); font-size: 20px; font-weight: 500; line-height: 1.2; letter-spacing: -0.02em; }
+  #askin-desktop-v1 .ask-sum-sub { overflow: hidden; margin-top: 2px; color: var(--ask-dim); font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+  /* 아쉬운 점 */
+  #askin-desktop-v1 .ask-weak-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; }
+  #askin-desktop-v1 .ask-weak-heading .ask-findings-heading { margin: 0; }
+  #askin-desktop-v1 .ask-count { margin-left: 4px; color: var(--ask-faint); font-family: var(--ask-mono); font-weight: 400; }
+  #askin-desktop-v1 .ask-weak-meta { min-height: 28px; padding: 0 4px; font-size: 12px; font-weight: 400; }
+  #askin-desktop-v1 .ask-chips { gap: 5px; color: var(--ask-dim); }
+  #askin-desktop-v1 .ask-chip { padding: 1px 7px; border: 1px solid var(--ask-line); border-radius: 999px; color: var(--ask-dim); font-size: 11px; font-weight: 400; }
+  #askin-desktop-v1 .ask-chip.is-tier { border-color: transparent; background: var(--ask-purple-soft); color: var(--ask-purple-ink); font-weight: 500; }
+  #askin-desktop-v1 .ask-chip.is-check { color: var(--ask-ink); font-weight: 500; }
+  #askin-desktop-v1 .ask-evidence { display: grid; gap: 2px; margin: 4px 0 0; color: var(--ask-dim); font-family: var(--ask-mono); font-size: 12px; }
+  #askin-desktop-v1 .ask-evidence b { color: var(--ask-ink); font-weight: 500; }
+  #askin-desktop-v1 .ask-caution { margin: 6px 0 0 !important; color: var(--ask-faint) !important; font-size: 12px; }
+  #askin-desktop-v1 .ask-recommend { margin: 8px 0 0 !important; color: var(--ask-ink) !important; font-size: 13px; line-height: 1.5; }
+  #askin-desktop-v1 .ask-recommend b { margin-right: 6px; color: var(--ask-purple-ink); font-weight: 500; }
+  #askin-desktop-v1 .ask-finding-actions { display: flex; align-items: center; gap: 6px; margin-top: 10px; }
+  #askin-desktop-v1 .ask-dismiss { font-size: 12px; font-weight: 400; }
+  /* 세부 분석: 규칙(미터)과 습관(값·표본·설명) */
+  #askin-desktop-v1 .ask-section-sum { margin: -2px 0 8px; color: var(--ask-faint); font-size: 11px; }
+  #askin-desktop-v1 .ask-axis-list { gap: 9px; }
+  #askin-desktop-v1 .ask-meter { overflow: hidden; height: 5px; margin: 4px 0 3px; border-radius: 3px; background: var(--ask-line-soft); }
+  #askin-desktop-v1 .ask-meter i { display: block; height: 100%; border-radius: 3px; background: var(--ask-purple); }
+  #askin-desktop-v1 .ask-rule.is-warn .ask-meter i { background: var(--ask-danger); }
+  #askin-desktop-v1 .ask-rule.is-warn .ask-axis-value { color: var(--ask-danger); }
+  #askin-desktop-v1 .ask-axis-value small { color: var(--ask-faint); font-size: 11px; }
+  #askin-desktop-v1 .ask-habit-note { margin: 1px 0 0; color: var(--ask-faint); font-size: 11px; text-wrap: pretty; }
+  #askin-desktop-v1 .ask-habit-rec { margin: 4px 0 0; color: var(--ask-ink); font-size: 11px; }
+  #askin-desktop-v1 .ask-habit-rec b { margin-right: 4px; color: var(--ask-purple-ink); font-weight: 500; }
+  #askin-desktop-v1 .ask-footnote { margin: 8px 0 0; color: var(--ask-faint); font-size: 11px; text-wrap: pretty; }
+  /* 내 하네스 섹션. 현재 세션 패널과 같은 결의 헤더를 쓰고, 레포트와는 선으로 가른다 */
+  #askin-desktop-v1 .ask-harness { flex: 0 0 auto; border-bottom: 1px solid var(--ask-line); }
+  #askin-desktop-v1 .ask-harness-body { padding: 12px 15px 14px; }
+  #askin-desktop-v1 .ask-harness .ask-map-legend { margin-left: auto; }
+  #askin-desktop-v1 .ask-harness .ask-harness-map { min-height: 240px; }
+  /* 아쉬운 점 카드 두 열 */
+  #askin-desktop-v1 .ask-weak-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; }
+  #askin-desktop-v1 .ask-weak-grid .ask-weak { padding: 10px 2px; }
+  #askin-desktop-v1[data-force-narrow] .ask-weak-grid { grid-template-columns: minmax(0, 1fr); }
+  /* 어느 도구 기록에서 온 값인지. 글자 배지. 실제 로고(SVG)는 앱에서 자산으로 넣는다 */
+  #askin-desktop-v1 .ask-detail-section h4 { display: flex; align-items: center; gap: 6px; }
+  #askin-desktop-v1 .ask-src { display: inline-block; padding: 0 6px; border: 1px solid var(--ask-line); border-radius: 4px; color: var(--ask-dim); font-size: 10px; font-weight: 500; line-height: 16px; }
+  #askin-desktop-v1 .ask-src.is-claude { border-color: #E3C9B8; color: #A65D3A; }
+  #askin-desktop-v1 .ask-src.is-codex { border-color: var(--ask-line); color: var(--ask-ink); }
+  /* 위 아쉬운 점 카드로 올라간 증상 표시 */
+  #askin-desktop-v1 .ask-chip.is-up { margin-left: 6px; padding: 0 6px; border-color: transparent; background: var(--ask-purple-soft); color: var(--ask-purple-ink); font-size: 10px; vertical-align: 1px; }
+</style>
+</head>
+<body>
+<div id="askin-desktop-v1">
+  <div class="ask-layout">
+    <aside class="ask-sidebar" aria-label="프로젝트">
+      <div class="ask-brand"><span class="ask-brand-mark" aria-hidden="true"></span>askin</div>
+      <div class="ask-sidebar-label">프로젝트</div>
+      <div class="ask-projects" id="ask-projects"></div>
+      <button class="ask-add-project" id="ask-add-project" type="button"><span aria-hidden="true">＋</span> 프로젝트 추가</button>
+    </aside>
+
+    <div class="ask-resize-handle" id="ask-resize-sidebar" role="separator" aria-orientation="vertical" aria-label="사이드바 폭 조절" tabindex="0">
+      <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+    </div>
+
+    <main class="ask-main-panel">
+      <section class="ask-session" id="ask-session">
+        <header class="ask-panel-heading">
+          <h1>현재 세션</h1>
+        </header>
+        <div class="ask-session-body">
+          <div class="ask-session-placeholder">아직 안 만듦</div>
+        </div>
+      </section>
+
+      <section class="ask-harness" aria-labelledby="ask-harness-title">
+        <header class="ask-panel-heading">
+          <h2 id="ask-harness-title">내 하네스</h2>
+          <span class="ask-heading-note">지금 정의 · 호출 수는 전체 기록</span>
+          <div class="ask-map-legend" aria-label="노드 종류">
+            <span class="is-agent"><i aria-hidden="true"></i>에이전트</span>
+            <span class="is-skill"><i aria-hidden="true"></i>스킬</span>
+            <span class="is-mcp"><i aria-hidden="true"></i>MCP</span>
+          </div>
+        </header>
+        <div class="ask-harness-body">
+          <div class="ask-summary" id="ask-summary" aria-label="하네스 구성 요약"></div>
+          <!-- 그래프 자체(Sigma) 는 안 건드린다. 옛 제목·메타(그래프 위 작은 h3)만 화면에서
+               빼고 renderer.mjs 의 기존 갱신 로직은 그대로 둔다 — hidden 이라 [hidden] 리셋
+               규칙이 항상 감춘다. -->
+          <span id="ask-graph-title" hidden></span>
+          <span id="ask-graph-meta" hidden></span>
+          <div class="ask-harness-map" id="ask-harness-map" data-zoom="mid" aria-label="하네스 연결 그래프">
+            <svg id="ask-declared-edges"></svg>
+            <div id="ask-sigma-container"></div>
+            <div class="ask-map-zoom" aria-label="그래프 확대 및 축소">
+              <button id="ask-zoom-out" type="button" aria-label="그래프 축소">−</button>
+              <output class="ask-map-zoom-output" id="ask-zoom-level" aria-live="polite">100%</output>
+              <button id="ask-zoom-in" type="button" aria-label="그래프 확대">＋</button>
+            </div>
+            <div class="ask-node-popover" id="ask-node-popover" role="dialog" aria-labelledby="ask-popover-name" tabindex="-1" hidden>
+              <button class="ask-popover-close" id="ask-popover-close" type="button" aria-label="닫기">×</button>
+              <div class="ask-popover-head">
+                <strong id="ask-popover-name"></strong>
+                <small id="ask-popover-type"></small>
+              </div>
+              <dl class="ask-popover-stats is-two-col" id="ask-popover-stats">
+                <!-- 왼쪽 칸의 이름표는 종류마다 다르다: project 는 "구성", 그 외는 "호출"
+                     (renderer.mjs openPopover 가 바꿔 끼운다). -->
+                <div><dt id="ask-popover-calls-label">호출</dt><dd id="ask-popover-calls"></dd></div>
+                <div><dt>최근</dt><dd id="ask-popover-last"></dd></div>
+              </dl>
+              <!-- "이름 — 횟수" 줄의 나열. agent 는 모델별 호출 수, skill·mcp 는 호출 주체별
+                   내역, project 는 구성(에이전트·스킬·MCP) 줄바꿈이다(renderer.mjs
+                   openPopover). 셋 다 없을 때만(위임 기록이 아예 없는 declared 전용
+                   에이전트) 비운다. -->
+              <ul class="ask-popover-callers" id="ask-popover-callers" hidden></ul>
+              <!-- project 팝오버 전용, 구성 목록 하단(renderer.mjs openPopover 정정
+                   지시서: "메인 세션이 모델별로 몇 개인지"). 다른 종류에서는 hidden.
+                   안의 목록은 위 ask-popover-callers 와 같은 "이름 — 수" 모양을
+                   renderNameCountList 로 재사용한다(target 인자). -->
+              <div class="ask-popover-model-summary" id="ask-popover-model-summary" hidden>
+                <p class="ask-popover-model-caption">모델별 세션 수</p>
+                <ul class="ask-popover-callers" id="ask-popover-model-list"></ul>
+              </div>
+              <span class="ask-popover-tail" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ask-report has-result" id="ask-report" aria-labelledby="ask-report-title">
+        <header class="ask-panel-heading">
+          <h2 class="ask-report-heading-label" id="ask-report-title">분석 레포트</h2>
+          <span class="ask-panel-heading-meta" id="ask-report-period"></span>
+        </header>
+
+        <div class="ask-report-stage">
+          <div class="ask-report-view ask-result is-visible">
+            <div class="ask-weak-heading">
+              <h3 class="ask-findings-heading" id="ask-findings-heading">아쉬운 점 <span class="ask-count" id="ask-weak-count"></span></h3>
+              <button class="ask-quiet ask-weak-meta" id="ask-weak-meta" type="button"></button>
+            </div>
+            <div class="ask-weak-grid" id="ask-findings"></div>
+            <button class="ask-details-toggle" id="ask-details-toggle" type="button" aria-expanded="false"><span id="ask-details-symbol">＋</span> 세부 분석 펼치기</button>
+            <div class="ask-details" id="ask-details">
+              <div class="ask-details-grid" id="ask-details-grid"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="ask-resize-handle" id="ask-resize-chat" role="separator" aria-orientation="vertical" aria-label="채팅 패널 폭 조절" tabindex="0">
+      <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+    </div>
+
+    <aside class="ask-chat-panel" aria-label="채팅">
+      <div class="ask-chat-body">
+        <div class="ask-chat-placeholder">아직 안 만듦</div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- UMD 빌드를 node_modules 에서 직접 로드한다. CDN 을 쓰지 않는다(지시서 지침) -->
+<script src="../../node_modules/graphology/dist/graphology.umd.min.js"></script>
+<script src="../../node_modules/sigma/dist/sigma.min.js"></script>
+<script type="module" src="./renderer.mjs"></script>
+</body>
+</html>
