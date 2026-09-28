@@ -559,9 +559,13 @@ export function transcriptPass(root = ROOT, { cache = true, scanner = null } = {
   }
   for (const { sessionId, isSub, row } of [...owner.values(), ...loose]) {
     const [i, o, cacheRead, cacheCreate] = row
-    if (!(i || o || cacheRead || cacheCreate)) continue
     if (!tokens.has(sessionId)) tokens.set(sessionId, { main: newTokens(), sub: newTokens() })
     const t = tokens.get(sessionId)[isSub ? 'sub' : 'main']
+    // 턴은 assistant 메시지 하나다. cache-miss-turns 축의 분모가 된다.
+    // synthetic 은 extractFile 에서 이미 걸러졌고, cross-file dedup 은 owner 에서 끝났다.
+    t.turns++
+    if (cacheRead === 0) t.cacheMissTurns++
+    if (!(i || o || cacheRead || cacheCreate)) continue
     t.in += i
     t.out += o
     t.cacheRead += cacheRead
@@ -579,7 +583,7 @@ export function transcriptPass(root = ROOT, { cache = true, scanner = null } = {
 }
 
 function newTokens() {
-  return { in: 0, out: 0, cacheRead: 0, cacheCreate: 0 }
+  return { in: 0, out: 0, cacheRead: 0, cacheCreate: 0, turns: 0, cacheMissTurns: 0 }
 }
 
 // 서브에이전트 전사 파일의 usage 를 위임 행에 붙인다.

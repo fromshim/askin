@@ -304,7 +304,8 @@ test('함정 A: 한 턴의 usage 는 줄마다 복사된다. 마지막 줄만 �
   )
   const { tokens } = transcriptPass(root, { cache: false })
   // 줄마다 더하면 in=3000 out=95 cacheRead=15000 cacheCreate=600 이 된다
-  assert.deepEqual(tokens.get(id).main, { in: 1000, out: 60, cacheRead: 5000, cacheCreate: 200 })
+  // 턴은 message.id 기준으로 한 개다
+  assert.deepEqual(tokens.get(id).main, { in: 1000, out: 60, cacheRead: 5000, cacheCreate: 200, turns: 1, cacheMissTurns: 0 })
 })
 
 test('함정 B: 같은 message.id 가 파일 경계를 넘어 겹치면 한 번만 센다', () => {
@@ -321,7 +322,7 @@ test('함정 B: 같은 message.id 가 파일 경계를 넘어 겹치면 한 번�
   fs.writeFileSync(path.join(root, `proj-b/${id}.jsonl`), body + usageLine('msg_W', [100, 30, 400, 0]) + '\n')
   const { tokens } = transcriptPass(root, { cache: false })
   // 파일마다 더하면 in=500 out=90 cacheRead=2000 이 된다. 합집합은 세 메시지뿐이다
-  assert.deepEqual(tokens.get(id).main, { in: 300, out: 60, cacheRead: 1200, cacheCreate: 0 })
+  assert.deepEqual(tokens.get(id).main, { in: 300, out: 60, cacheRead: 1200, cacheCreate: 0, turns: 3, cacheMissTurns: 0 })
 })
 
 test('함정 C: <synthetic> 줄은 API 호출이 아니라 usage 에서 뺀다', () => {
@@ -337,7 +338,8 @@ test('함정 C: <synthetic> 줄은 API 호출이 아니라 usage 에서 뺀다',
     ].join('\n') + '\n',
   )
   const { tokens } = transcriptPass(root, { cache: false })
-  assert.deepEqual(tokens.get(id).main, { in: 10, out: 1, cacheRead: 20, cacheCreate: 0 })
+  // synthetic 줄은 턴에 안 든다
+  assert.deepEqual(tokens.get(id).main, { in: 10, out: 1, cacheRead: 20, cacheCreate: 0, turns: 1, cacheMissTurns: 0 })
 })
 
 test('서브에이전트에서 막힌 도구도 그 세션 차단으로 센다', () => {
@@ -397,9 +399,5 @@ test('위임 행에 서브에이전트 토큰이 붙는다', () => {
   const joined = withDispatch(rows, root, pass)
   const r = joined.find((x) => x.agentId === 'agent-x')
   assert.equal(r.dispatchId, 'msg_P')
-  // 위임 단위 토큰은 합계라 in/out/cacheRead/cacheCreate 만 본다.
-  assert.equal(r.tokens.in, 10)
-  assert.equal(r.tokens.out, 2)
-  assert.equal(r.tokens.cacheRead, 5)
-  assert.equal(r.tokens.cacheCreate, 1)
+  assert.deepEqual(r.tokens, { in: 10, out: 2, cacheRead: 5, cacheCreate: 1, turns: 0, cacheMissTurns: 0 })
 })

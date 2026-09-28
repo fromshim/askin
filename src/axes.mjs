@@ -199,6 +199,28 @@ export const observation = [
     },
   },
   {
+    id: 'cache-miss-turns',
+    label: '캐시 미스 턴',
+    unavailable: '이 범위에 토큰 기록이 없다',
+    // 1: scan.mjs 가 턴 단위 cacheRead 를 낸 뒤. 토큰 합계만으론 "몇 턴이 맞았는지"를 알 수 없었다.
+    measure: 1,
+    // 누적 건수로 두면 창을 넓힐 때마다 그냥 커진다. guard-denials 와 같은 이유로 비율이어야 한다.
+    // 한 턴은 assistant 메시지 하나다. extractFile 이 message.id 로 중복을 걷고 synthetic 을 빼면
+    // 남은 usage 줄 하나가 한 턴이다. 서브에이전트 턴은 분모에서 뺀다(메인 세션만 본다).
+    note: '캐시를 읽지 못한 턴의 비율. 높아지면 문맥이 자주 깨지고 있다는 뜻이다',
+    compute: ({ tokens }) => {
+      if (!tokens?.size) return null
+      let miss = 0
+      let turns = 0
+      for (const t of tokens.values()) {
+        miss += t.main.cacheMissTurns ?? 0
+        turns += t.main.turns ?? 0
+      }
+      if (turns === 0) return null
+      return { value: miss / turns, unit: 'ratio', n: turns, detail: { 'cache-miss 턴': `${miss}/${turns}` } }
+    },
+  },
+  {
     id: 'subagent-outcome',
     // 위임만 있으면 계산된다. 그래서 주별 추세를 낼 수 있다(series.mjs).
     source: 'delegations',

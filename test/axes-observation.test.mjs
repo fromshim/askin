@@ -214,6 +214,52 @@ test('Windows 분기가 앞에 있어도 실제로 도는 .sh 를 고른다', ()
   assert.equal(hookCommandName(wrapper), 'claude-hook.sh')
 })
 
+// ---------- 캐시 미스 턴 (cache-miss-turns) ----------
+//
+// 토큰 합계만으론 "몇 턴이 cacheRead 를 갖는지"를 알 수 없다. scan.mjs 가 턴 단위로
+// dedup 한 뒤 turns 와 cacheMissTurns 를 tokens 에 붙인다. 메인 세션 턴의 cache-miss 비율.
+
+const cacheMiss = observation.find((a) => a.id === 'cache-miss-turns')
+const tokenSession = (main, sub = {}) => ({
+  main: { in: 0, out: 0, cacheRead: 0, cacheCreate: 0, turns: 0, cacheMissTurns: 0, ...main },
+  sub: { in: 0, out: 0, cacheRead: 0, cacheCreate: 0, turns: 0, cacheMissTurns: 0, ...sub },
+})
+
+test('캐시 미스 턴은 비율이다', () => {
+  const small = cacheMiss.compute({ tokens: new Map([['s1', tokenSession({ turns: 10, cacheMissTurns: 2 })]]) })
+  const big = cacheMiss.compute({
+    tokens: new Map([
+      ['s1', tokenSession({ turns: 10, cacheMissTurns: 2 })],
+      ['s2', tokenSession({ turns: 10, cacheMissTurns: 2 })],
+    ]),
+  })
+  assert.equal(small.value, big.value)
+  assert.equal(small.value, 0.2)
+  assert.equal(small.n, 10)
+  assert.equal(small.detail['cache-miss 턴'], '2/10')
+})
+
+test('캐시를 읽으면 값이 낮아진다', () => {
+  const missy = cacheMiss.compute({ tokens: new Map([['s1', tokenSession({ turns: 10, cacheMissTurns: 5 })]]) })
+  const hitty = cacheMiss.compute({ tokens: new Map([['s1', tokenSession({ turns: 10, cacheMissTurns: 1 })]]) })
+  assert.ok(missy.value > hitty.value)
+})
+
+test('서브에이전트 턴은 분모에서 뺀다', () => {
+  const r = cacheMiss.compute({
+    tokens: new Map([
+      ['s1', tokenSession({ turns: 10, cacheMissTurns: 2 }, { turns: 5, cacheMissTurns: 5 })],
+    ]),
+  })
+  assert.equal(r.value, 0.2)
+  assert.equal(r.n, 10)
+})
+
+test('턴이 없으면 0% 가 아니라 판정 불가다', () => {
+  assert.equal(cacheMiss.compute({ tokens: new Map() }), null)
+  assert.equal(cacheMiss.compute({ tokens: new Map([['s1', tokenSession({ turns: 0, cacheMissTurns: 0 })]]) }), null)
+})
+
 test('관찰값 표시를 한 곳에서 만든다', () => {
   // 같은 판정이 render.mjs 와 report.mjs 두 곳에 복사돼 있었다. unit 을 하나 늘릴 때마다
   // 두 곳을 고쳐야 했고, 한쪽만 고치면 화면과 터미널이 다른 말을 한다.
