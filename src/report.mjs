@@ -17,6 +17,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { delegations, withDispatch, projectSlug, rustScanner, sessions, transcriptPass, ROOT } from './scan.mjs'
+import { codexSessions } from './codex.mjs'
 import { agentDefs, brokenSkillRefs, danglingSkills, deadPaths, harnessDocs, skillIndex } from './refs.mjs'
 import { candidates, harnessCorpus, judgeable, MIN_DOCS } from './contradictions.mjs'
 import { compliance, observation, loadAxes, userAxesPath, checkCitations, citation, axisFingerprint, formatValue } from './axes.mjs'
@@ -341,7 +342,24 @@ export function buildReport({ repo = null, since = null, until = null, cache = t
   const inScope = new Set(sessionRows.map((s) => s.sessionId))
   const scopedTokens = new Map([...pass.tokens].filter(([id]) => inScope.has(id)))
 
-  const sources = { delegations: rows, sessions: sessionRows, hooks: hookRows(sessionRows), tokens: scopedTokens }
+  // Codex 세션의 토큰은 cache-hit 축에만 섞는다. 서브에이전트별 토큰 분할이 없어
+  // 위임률 축에는 섞지 않는다 — axes.mjs 의 delegation-share 주석 참고.
+  const repoSlug = repo ? projectSlug(repo) : null
+  const codexRows = codexSessions(undefined, { cache }).filter((s) => {
+    if (repoSlug && s.project !== repoSlug && !s.project.startsWith(`${repoSlug}--`)) return false
+    if (since && s.lastUsed && s.lastUsed < since) return false
+    if (until && s.startedAt && s.startedAt >= until) return false
+    return true
+  })
+  const codexTokens = new Map()
+  for (const s of codexRows) {
+    const t = s.tokens
+    if (!t) continue
+    const hasData = t.main.in + t.main.out + t.main.cacheRead + t.main.cacheCreate > 0
+    if (hasData) codexTokens.set(s.id, t)
+  }
+
+  const sources = { delegations: rows, sessions: sessionRows, hooks: hookRows(sessionRows), tokens: scopedTokens, codexTokens }
   if (repo) {
     // 하네스 활용만 기간을 안 좁힌다.
     //

@@ -1,0 +1,511 @@
+{
+  "scope": {
+    "repo": null,
+    "since": null,
+    "until": null,
+    "pinned": false,
+    "delegations": 1244,
+    "sessions": 131,
+    "totalAll": 1244,
+    "spanningSessions": 0,
+    "spanningTurnShare": 0
+  },
+  "compliance": [
+    {
+      "id": "model-explicit",
+      "label": "모델 명시",
+      "rule": "~/.claude/CLAUDE.md:9  `model` 파라미터를 항상 명시한다",
+      "unit": "delegations",
+      "total": 1113,
+      "violations": 26,
+      "rate": 0.9766397124887691,
+      "concentration": [
+        {
+          "key": "personal-channy",
+          "count": 16,
+          "of": 32,
+          "rate": 0.5
+        },
+        {
+          "key": "work-unboxx-inboxx-app",
+          "count": 4,
+          "of": 376,
+          "rate": 0.010638297872340425
+        },
+        {
+          "key": "work-unboxx-rescoop-server",
+          "count": 4,
+          "of": 268,
+          "rate": 0.014925373134328358
+        },
+        {
+          "key": "portfolio",
+          "count": 2,
+          "of": 59,
+          "rate": 0.03389830508474576
+        }
+      ],
+      "samples": [
+        "personal-channy  general-purpose  model=없음  \"Seed revise: simplifier\"",
+        "personal-channy  general-purpose  model=없음  \"Acceptance guard: closer\"",
+        "personal-channy  general-purpose  model=없음  \"Lateral review: contrarian\"",
+        "personal-channy  general-purpose  model=없음  \"Lateral review: simplifier\"",
+        "personal-channy  general-purpose  model=없음  \"OCR lateral: simplifier\"",
+        "personal-channy  general-purpose  model=없음  \"Seed revise: researcher\""
+      ]
+    },
+    {
+      "id": "chore-model",
+      "label": "잡무 모델",
+      "rule": "~/.claude/CLAUDE.md:8  판단이 필요 없는 잡무는 haiku 로 보낸다",
+      "unit": "delegations",
+      "total": 134,
+      "violations": 2,
+      "rate": 0.9850746268656716,
+      "concentration": [
+        {
+          "key": "work-unboxx-inboxx-app",
+          "count": 2,
+          "of": 111,
+          "rate": 0.018018018018018018
+        }
+      ],
+      "samples": [
+        "work-unboxx-inboxx-app  runner  model=없음  \"Run typecheck for inboxx-app\"",
+        "work-unboxx-inboxx-app  runner  model=없음  \"Typecheck pr6 worktree\""
+      ]
+    },
+    {
+      "id": "hook-integrity",
+      "label": "훅 무결성",
+      "rule": "훅이 조용히 실패하면 규칙이 안 지켜져도 아무도 모른다",
+      "unit": "hooks",
+      "total": 3118,
+      "violations": 1,
+      "rate": 0.9996792815907634,
+      "concentration": [
+        {
+          "key": "portfolio",
+          "count": 1,
+          "of": 343,
+          "rate": 0.0029154518950437317
+        }
+      ],
+      "samples": [
+        "SessionStart:startup  2회 실패 / 6회 실행  (-Users-seungboshim-Projects-portfolio)\n        600.0초 제한을 넘겨 잘림 (945.4초 걸렸다)\n        600.0초 제한을 넘겨 잘림 (945.7초 걸렸다)"
+      ]
+    }
+  ],
+  "observation": [
+    {
+      "id": "parallel-ratio",
+      "label": "병렬 비율",
+      "note": "한 번 띄울 때 두 갈래 이상으로 나눈 비율",
+      "value": 0.4815436241610738,
+      "unit": "ratio",
+      "n": 596
+    },
+    {
+      "id": "parallel-width",
+      "label": "평균 갈래",
+      "note": "디스패치 한 번당 평균 갈래 수. 1.0 이면 병렬을 전혀 안 쓴 것",
+      "value": 2.057046979865772,
+      "unit": "count",
+      "n": 596
+    },
+    {
+      "id": "guard-denials",
+      "label": "가드 차단",
+      "note": "100턴당 몇 번 막혔나. user-rejected 는 사람이, 나머지는 자동 가드가 막은 것",
+      "value": 6.863780359028511,
+      "unit": "count",
+      "n": 2841,
+      "detail": {
+        "합계": "195건",
+        "user-rejected": 47,
+        "automode-unavailable": 3,
+        "automode-blocked": 37,
+        "permission-rule": 108
+      }
+    },
+    {
+      "id": "delegation-share",
+      "label": "위임률",
+      "note": "서브에이전트가 쓴 토큰 비율. 높다고 잘 쓴 게 아니다. 계획과 통합은 메인이 하는 일이다",
+      "value": 0.4547906734675746,
+      "unit": "ratio",
+      "n": 122,
+      "detail": {
+        "위임을 쓴 세션": "74/122"
+      }
+    },
+    {
+      "id": "cache-hit",
+      "label": "캐시 적중률",
+      "note": "다시 읽은 문맥의 비율. 낮아지면 문맥이 자주 깨지고 있다는 뜻이다. Codex 토큰 포함",
+      "value": 0.9622127703956493,
+      "unit": "ratio",
+      "n": 267
+    },
+    {
+      "id": "cache-miss-turns",
+      "label": "캐시 미스 턴",
+      "note": "캐시를 읽지 못한 턴의 비율. 높아지면 문맥이 자주 깨지고 있다는 뜻이다",
+      "value": 0.007276384287742546,
+      "unit": "ratio",
+      "n": 16904,
+      "detail": {
+        "cache-miss 턴": "123/16904"
+      }
+    },
+    {
+      "id": "subagent-outcome",
+      "label": "서브에이전트 결말",
+      "note": "끝난 상태를 아는 위임만 센다. 워크플로가 띄운 것은 알림이 없어 빠진다",
+      "value": 0.010169491525423728,
+      "unit": "ratio",
+      "n": 1180,
+      "detail": {
+        "completed": 1168,
+        "failed": 6,
+        "killed": 6
+      }
+    },
+    {
+      "id": "active-sessions",
+      "label": "지금 도는 세션",
+      "note": "최근 15분 안에 전사가 자란 세션. 프로세스가 떠 있는 것과는 다르다",
+      "noTrend": "지금 몇 개가 도는지는 시점 값이라 추세가 성립하지 않는다",
+      "value": 4,
+      "unit": "count",
+      "n": 131
+    },
+    {
+      "id": "stop-hook-time",
+      "label": "턴 마무리 훅 시간",
+      "note": "턴이 끝날 때 Stop 훅 묶음이 먹는 평균 시간. 훅 전체가 아니라 Stop 계열만이다",
+      "value": 470.33163956639567,
+      "unit": "ms",
+      "n": 2952,
+      "detail": {
+        "gk": "113ms × 2932회",
+        "stop-review-gate-hook.mjs": "109ms × 2951회",
+        "stop.py": "75ms × 2602회",
+        "handoff.py": "61ms × 2850회",
+        "osascript": "161ms × 612회",
+        "on-stop.sh": "33ms × 2951회",
+        "claude-hook.sh": "47ms × 1464회",
+        "claude-hook.sh (2)": "51ms × 866회",
+        "stop.py (2)": "75ms × 349회",
+        "claude-hook.sh (3)": "48ms × 439회",
+        "claude-hook.sh (4)": "42ms × 162회",
+        "claude-hook.sh (5)": "40ms × 17회"
+      }
+    }
+  ],
+  "hookTotals": {
+    "runs": 203214,
+    "events": 207,
+    "fail": 2
+  },
+  "refDocs": 0,
+  "refs": {
+    "deadPaths": [],
+    "brokenSkillRefs": [],
+    "danglingSkills": []
+  },
+  "citations": [],
+  "contradictions": [],
+  "contradictionDocs": 0,
+  "repoDocs": 0,
+  "weekly": [
+    {
+      "start": "2026-07-20",
+      "delegations": 14,
+      "axes": {
+        "model-explicit": {
+          "rate": null,
+          "total": 14,
+          "thin": true
+        },
+        "chore-model": {
+          "rate": null,
+          "total": 0,
+          "thin": true
+        },
+        "parallel-ratio": {
+          "rate": null,
+          "total": 14,
+          "thin": true
+        },
+        "parallel-width": {
+          "rate": null,
+          "total": 14,
+          "thin": true
+        },
+        "subagent-outcome": {
+          "rate": null,
+          "total": 14,
+          "thin": true
+        }
+      }
+    },
+    {
+      "start": "2026-08-03",
+      "delegations": 9,
+      "axes": {
+        "model-explicit": {
+          "rate": null,
+          "total": 9,
+          "thin": true
+        },
+        "chore-model": {
+          "rate": null,
+          "total": 0,
+          "thin": true
+        },
+        "parallel-ratio": {
+          "rate": null,
+          "total": 9,
+          "thin": true
+        },
+        "parallel-width": {
+          "rate": null,
+          "total": 9,
+          "thin": true
+        },
+        "subagent-outcome": {
+          "rate": null,
+          "total": 9,
+          "thin": true
+        }
+      }
+    },
+    {
+      "start": "2026-08-10",
+      "delegations": 24,
+      "axes": {
+        "model-explicit": {
+          "rate": null,
+          "total": 12,
+          "thin": true
+        },
+        "chore-model": {
+          "rate": null,
+          "total": 0,
+          "thin": true
+        },
+        "parallel-ratio": {
+          "rate": 0.6666666666666666,
+          "total": 9
+        },
+        "parallel-width": {
+          "rate": 2.6666666666666665,
+          "total": 9
+        },
+        "subagent-outcome": {
+          "rate": 0,
+          "total": 23
+        }
+      }
+    },
+    {
+      "start": "2026-08-17",
+      "delegations": 31,
+      "axes": {
+        "model-explicit": {
+          "rate": null,
+          "total": 19,
+          "thin": true
+        },
+        "chore-model": {
+          "rate": null,
+          "total": 0,
+          "thin": true
+        },
+        "parallel-ratio": {
+          "rate": 1,
+          "total": 7
+        },
+        "parallel-width": {
+          "rate": 4.428571428571429,
+          "total": 7
+        },
+        "subagent-outcome": {
+          "rate": 0,
+          "total": 29
+        }
+      }
+    },
+    {
+      "start": "2026-08-24",
+      "delegations": 169,
+      "axes": {
+        "model-explicit": {
+          "rate": 0.9795918367346939,
+          "total": 147,
+          "violations": 3
+        },
+        "chore-model": {
+          "rate": null,
+          "total": 11,
+          "thin": true
+        },
+        "parallel-ratio": {
+          "rate": 0.5609756097560976,
+          "total": 82
+        },
+        "parallel-width": {
+          "rate": 2.0365853658536586,
+          "total": 82
+        },
+        "subagent-outcome": {
+          "rate": 0.01910828025477707,
+          "total": 157
+        }
+      }
+    },
+    {
+      "start": "2026-08-31",
+      "delegations": 126,
+      "axes": {
+        "model-explicit": {
+          "rate": 1,
+          "total": 104,
+          "violations": 0
+        },
+        "chore-model": {
+          "rate": null,
+          "total": 13,
+          "thin": true
+        },
+        "parallel-ratio": {
+          "rate": 0.4461538461538462,
+          "total": 65
+        },
+        "parallel-width": {
+          "rate": 1.9384615384615385,
+          "total": 65
+        },
+        "subagent-outcome": {
+          "rate": 0.00819672131147541,
+          "total": 122
+        }
+      }
+    },
+    {
+      "start": "2026-09-07",
+      "delegations": 377,
+      "axes": {
+        "model-explicit": {
+          "rate": 0.9857954545454546,
+          "total": 352,
+          "violations": 5
+        },
+        "chore-model": {
+          "rate": 0.9821428571428571,
+          "total": 56,
+          "violations": 1
+        },
+        "parallel-ratio": {
+          "rate": 0.519774011299435,
+          "total": 177
+        },
+        "parallel-width": {
+          "rate": 2.1186440677966103,
+          "total": 177
+        },
+        "subagent-outcome": {
+          "rate": 0.010958904109589041,
+          "total": 365
+        }
+      }
+    },
+    {
+      "start": "2026-09-14",
+      "delegations": 237,
+      "axes": {
+        "model-explicit": {
+          "rate": 0.9954954954954955,
+          "total": 222,
+          "violations": 1
+        },
+        "chore-model": {
+          "rate": 1,
+          "total": 43,
+          "violations": 0
+        },
+        "parallel-ratio": {
+          "rate": 0.4083333333333333,
+          "total": 120
+        },
+        "parallel-width": {
+          "rate": 1.8583333333333334,
+          "total": 120
+        },
+        "subagent-outcome": {
+          "rate": 0.009389671361502348,
+          "total": 213
+        }
+      }
+    },
+    {
+      "start": "2026-09-21",
+      "delegations": 190,
+      "axes": {
+        "model-explicit": {
+          "rate": 0.9942857142857143,
+          "total": 175,
+          "violations": 1
+        },
+        "chore-model": {
+          "rate": null,
+          "total": 8,
+          "thin": true
+        },
+        "parallel-ratio": {
+          "rate": 0.45977011494252873,
+          "total": 87
+        },
+        "parallel-width": {
+          "rate": 2.1839080459770117,
+          "total": 87
+        },
+        "subagent-outcome": {
+          "rate": 0.005434782608695652,
+          "total": 184
+        }
+      }
+    },
+    {
+      "start": "2026-09-28",
+      "delegations": 67,
+      "axes": {
+        "model-explicit": {
+          "rate": 1,
+          "total": 59,
+          "violations": 0
+        },
+        "chore-model": {
+          "rate": null,
+          "total": 3,
+          "thin": true
+        },
+        "parallel-ratio": {
+          "rate": 0.35135135135135137,
+          "total": 37
+        },
+        "parallel-width": {
+          "rate": 1.8108108108108107,
+          "total": 37
+        },
+        "subagent-outcome": {
+          "rate": 0.015625,
+          "total": 64
+        }
+      }
+    }
+  ],
+  "unjudged": [],
+  "delta": null
+}

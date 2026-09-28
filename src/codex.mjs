@@ -225,6 +225,30 @@ function usable(meta) {
   return true
 }
 
+function newTokens() {
+  return { in: 0, out: 0, cacheRead: 0, cacheCreate: 0, turns: 0, cacheMissTurns: 0 }
+}
+
+// token_count 이벤트를 세션 단위로 합친다.
+// info.last_token_usage 를 쓴다. cached_input_tokens 는 input_tokens 의 부분집합이고,
+// cache_write_input_tokens 는 캐시 생성 토큰이다. axes.mjs 의 cache-hit 축이
+// fresh = input - cached 로 계산할 수 있게 별도의 fresh 필드를 남긴다.
+function sumCodexTokens(tokenCounts) {
+  const main = { ...newTokens(), fresh: 0 }
+  for (const tc of tokenCounts) {
+    const usage = tc.last ?? tc.total ?? null
+    if (!usage) continue
+    const input = usage.input_tokens ?? 0
+    const cached = usage.cached_input_tokens ?? 0
+    main.in += input
+    main.out += usage.output_tokens ?? 0
+    main.cacheRead += cached
+    main.cacheCreate += usage.cache_write_input_tokens ?? 0
+    main.fresh += input - cached
+  }
+  return { main, sub: newTokens() }
+}
+
 // 서브에이전트를 걸러낸 세션 목록. cwd·projectSlug·turn 수·마지막 시각을 낸다.
 // since·until 은 안 받는다 — scan.mjs 의 sessions()·delegations() 도 안 받는다. 창 자르기는
 // 부르는 쪽(graph.mjs)의 몫이라 여기서 새 규칙을 만들지 않는다.
@@ -244,6 +268,7 @@ export function codexSessions(root = CODEX_ROOT, { cache = true } = {}) {
       lastUsed: facts.lastTs ?? meta.startedAt,
       startedAt: meta.startedAt,
       models: facts.models, // { modelName: count } — Claude sessions() 의 models 와 같은 모양
+      tokens: sumCodexTokens(facts.tokenCounts),
     })
   }
   return out

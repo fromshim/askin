@@ -160,6 +160,10 @@ export const observation = [
     //
     // 토큰으로 재되 캐시는 뺀다. 캐시 읽기는 같은 문맥을 다시 읽는 것이지 새 일이 아니다.
     // 캐시를 넣으면 문맥이 긴 메인 세션이 실제보다 많이 일한 것처럼 보인다.
+    //
+    // Codex 토큰은 섞지 않는다. Todo 4 의 subagent-split verdict:
+    // token_count 는 세션 단위라 서브에이전트별로 쪼개진 값이 없어 위임률 분자/분모를
+    // 나눌 근거가 없다. cache-hit 에만 반영한다.
     note: '서브에이전트가 쓴 토큰 비율. 높다고 잘 쓴 게 아니다. 계획과 통합은 메인이 하는 일이다',
     compute: ({ tokens }) => {
       if (!tokens?.size) return null
@@ -179,23 +183,42 @@ export const observation = [
     label: '캐시 적중률',
     unavailable: '이 범위에 토큰 기록이 없다',
     // 2: scan.mjs 가 토큰 함정 셋을 고친 뒤. 이 저장소 97.37% → 98.15%, 전 프로젝트 95.37% → 96.61%.
-    measure: 2,
-    note: '다시 읽은 문맥의 비율. 낮아지면 문맥이 자주 깨지고 있다는 뜻이다',
-    compute: ({ tokens }) => {
-      if (!tokens?.size) return null
+    // 3: Codex 토큰을 섞은 뒤. cached_input_tokens 가 input_tokens 의 부분집합이므로
+    //     fresh = input - cached 로 잰다. delegation-share 는 subagent-split verdict 로
+    //     서브에이전트별 분할이 입증되지 않아 섞지 않는다.
+    measure: 3,
+    note: '다시 읽은 문맥의 비율. 낮아지면 문맥이 자주 깨지고 있다는 뜻이다. Codex 토큰 포함',
+    compute: ({ tokens, codexTokens }) => {
       let read = 0
       let create = 0
       let fresh = 0
-      for (const t of tokens.values()) {
-        for (const side of [t.main, t.sub]) {
-          read += side.cacheRead
-          create += side.cacheCreate
-          fresh += side.in
+      let n = 0
+      if (tokens?.size) {
+        n += tokens.size
+        for (const t of tokens.values()) {
+          for (const side of [t.main, t.sub]) {
+            read += side.cacheRead
+            create += side.cacheCreate
+            fresh += side.in
+          }
         }
       }
+      // Codex: cached_input_tokens 는 input_tokens 의 부분집합이다.
+      // fresh = input - cached. axes 가 양수로 가정하므로 음수는 0 으로 막는다.
+      if (codexTokens?.size) {
+        n += codexTokens.size
+        for (const t of codexTokens.values()) {
+          for (const side of [t.main, t.sub]) {
+            read += side.cacheRead
+            create += side.cacheCreate
+            fresh += Math.max(0, side.fresh ?? side.in - side.cacheRead)
+          }
+        }
+      }
+      if (n === 0) return null
       const denom = read + create + fresh
       if (denom === 0) return null
-      return { value: read / denom, unit: 'ratio', n: tokens.size }
+      return { value: read / denom, unit: 'ratio', n }
     },
   },
   {
