@@ -415,6 +415,7 @@ function loadReport(repoPath) {
     inventory: inv,
     kindNames: KIND_NAMES,
     ignoredCount: ignored.length,
+    sessionRows: report.sessionRows ?? [],
     // 무엇을 근거로 쟀는지. 분모가 어디서 왔는지 안 보이면 숫자를 믿을 수가 없다.
     basis: {
       sessions: report.scope.sessions,

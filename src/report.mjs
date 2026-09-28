@@ -375,6 +375,19 @@ export function buildReport({ repo = null, since = null, until = null, cache = t
     sources.declaredSkills = declaredSkillRows(repo)
   }
 
+  const now = Date.now()
+  const liveCut = new Date(now - 15 * 60 * 1000).toISOString()
+  const sessionRowsPayload = sessionRows.map((s) => ({
+    sessionId: s.sessionId,
+    project: s.project,
+    turns: s.turns,
+    startedAt: s.startedAt,
+    endedAt: s.endedAt,
+    // 세션 전체 기간 안에서 마지막으로 전사가 자란 시각. 축의 "최근 15분" 기준과 같은 자름.
+    lastWrite: s.mtime,
+    live: Boolean(s.mtime && s.mtime >= liveCut),
+  }))
+
   return {
     scope: {
       repo,
@@ -417,6 +430,7 @@ export function buildReport({ repo = null, since = null, until = null, cache = t
     files: pass.files,
     // 추세는 스냅샷이 아니라 데이터에서 뽑는다. 소급되고 시간 간격이 진짜다.
     weekly: weeklySeries(rows, { compliance: useCompliance, observation: useObservation }, { measure, observe }),
+    sessionRows: sessionRowsPayload,
   }
 }
 

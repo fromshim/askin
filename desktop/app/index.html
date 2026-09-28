@@ -176,6 +176,25 @@
     display: flex; flex: 1; align-items: center; justify-content: center;
     color: var(--ask-dim); font-size: 12px; text-align: center; padding: 20px;
   }
+  /* 현재 세션 패널. 접힌 상태가 기본이다. */
+  #askin-desktop-v1 .ask-session-body { align-items: stretch; text-align: left; }
+  #askin-desktop-v1 .ask-session-empty {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    margin: auto; padding: 20px; color: var(--ask-dim); font-size: 12px; text-align: center;
+  }
+  #askin-desktop-v1 .ask-session-rows { width: 100%; padding: 10px 14px; }
+  #askin-desktop-v1 .ask-session-row {
+    display: flex; align-items: center; gap: 8px; padding: 6px 0;
+    border-bottom: 1px solid var(--ask-line-soft); font-size: 12px;
+  }
+  #askin-desktop-v1 .ask-session-id { min-width: 0; color: var(--ask-ink); font-family: var(--ask-mono); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #askin-desktop-v1 .ask-session-turns { margin-left: auto; color: var(--ask-faint); font-family: var(--ask-mono); font-variant-numeric: tabular-nums; }
+  #askin-desktop-v1 .ask-session-times { display: flex; flex-wrap: wrap; gap: 4px 10px; color: var(--ask-dim); font-size: 11px; }
+  #askin-desktop-v1 .ask-session-time { white-space: nowrap; }
+  #askin-desktop-v1 .ask-session-live {
+    flex: 0 0 auto; padding: 1px 6px; border-radius: 999px;
+    background: var(--ask-positive); color: #fff; font-size: 10px; font-weight: 500;
+  }
 
   /* ── 레포트 재설계(2026-09-03). desktop/canvas/gen.py 의 EXTRA_CSS 에서 그대로 옮긴다.
      클래스명·값을 바꾸지 않는다 — 정본은 gen.py 다. ── */
@@ -246,12 +265,19 @@
     </div>
 
     <main class="ask-main-panel">
-      <section class="ask-session" id="ask-session">
+      <section class="ask-session is-collapsed" id="ask-session">
         <header class="ask-panel-heading">
           <h1>현재 세션</h1>
+          <span class="ask-panel-heading-meta" id="ask-session-meta">0개</span>
+          <button class="ask-icon-button" id="ask-session-toggle" type="button" aria-label="현재 세션 펼치기" aria-expanded="false">⌄</button>
         </header>
-        <div class="ask-session-body">
-          <div class="ask-session-placeholder">아직 안 만듦</div>
+        <div class="ask-session-body" id="ask-session-body">
+          <div class="ask-session-empty" id="ask-session-empty">
+            <span class="ask-empty-symbol" aria-hidden="true">○</span>
+            <strong>작업을 시작하면 현재 세션이 보여요</strong>
+            <span>turn, 마지막 기록, 시작·종료 시각을 여기에서 확인해요.</span>
+          </div>
+          <div class="ask-session-rows" id="ask-session-rows" hidden></div>
         </div>
       </section>
 

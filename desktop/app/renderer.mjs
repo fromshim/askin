@@ -54,6 +54,12 @@ const detailsSymbol = document.getElementById('ask-details-symbol')
 const detailsGridEl = document.getElementById('ask-details-grid')
 const summaryEl = document.getElementById('ask-summary')
 const reportPeriodEl = document.getElementById('ask-report-period')
+const sessionSection = document.getElementById('ask-session')
+const sessionToggle = document.getElementById('ask-session-toggle')
+const sessionBody = document.getElementById('ask-session-body')
+const sessionMeta = document.getElementById('ask-session-meta')
+const sessionEmpty = document.getElementById('ask-session-empty')
+const sessionRowsEl = document.getElementById('ask-session-rows')
 
 const PROJECT_MIN_SIZE = 12 // desktop/design-concept.md: 호출 수와 무관하게 최소 크기를 보장한다
 const sizeFor = (calls) => 4 + Math.sqrt(calls) * 1.6
@@ -224,6 +230,12 @@ function absoluteLastUsed(iso) {
   if (!iso) return ''
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+function shortDateTime(iso) {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 // src/graph.mjs 의 PROJECT 상수와 같은 값이다. 그 파일을 렌더러가 import 할 수 없어(node
@@ -955,6 +967,60 @@ function renderReport(report) {
 
   summaryEl.innerHTML = ''
   for (const tile of buildSummaryTiles(report.inventory)) summaryEl.append(tile)
+
+  renderSessionPanel(report)
+}
+
+function renderSessionPanel(report) {
+  const rows = report.sessionRows ?? []
+  sessionMeta.textContent = `${rows.length}개`
+  sessionRowsEl.innerHTML = ''
+  if (!rows.length) {
+    sessionEmpty.hidden = false
+    sessionRowsEl.hidden = true
+    return
+  }
+  sessionEmpty.hidden = true
+  sessionRowsEl.hidden = false
+  for (const s of rows) {
+    const row = document.createElement('div')
+    row.className = 'ask-session-row'
+    const id = document.createElement('span')
+    id.className = 'ask-session-id'
+    id.title = s.sessionId
+    id.textContent = s.sessionId
+    const turns = document.createElement('span')
+    turns.className = 'ask-session-turns'
+    turns.textContent = `${s.turns ?? 0}턴`
+    const times = document.createElement('div')
+    times.className = 'ask-session-times'
+    const last = document.createElement('span')
+    last.className = 'ask-session-time'
+    last.textContent = `마지막 ${lastUsedLabel(s.lastWrite)}`
+    last.title = absoluteLastUsed(s.lastWrite)
+    const started = document.createElement('span')
+    started.className = 'ask-session-time'
+    started.textContent = `시작 ${shortDateTime(s.startedAt)}`
+    const ended = document.createElement('span')
+    ended.className = 'ask-session-time'
+    ended.textContent = `종료 ${shortDateTime(s.endedAt)}`
+    times.append(last, started, ended)
+    row.append(id, times, turns)
+    if (s.live) {
+      const badge = document.createElement('span')
+      badge.className = 'ask-session-live'
+      badge.textContent = '도는 중'
+      row.append(badge)
+    }
+    sessionRowsEl.append(row)
+  }
+}
+
+function clearSessionPanel() {
+  sessionMeta.textContent = '0개'
+  sessionRowsEl.innerHTML = ''
+  sessionEmpty.hidden = false
+  sessionRowsEl.hidden = true
 }
 
 // 레포트가 아직 없거나(재는 중) 볼 프로젝트가 없을 때.
@@ -970,6 +1036,7 @@ function clearReport(message) {
   reportPeriodEl.textContent = ''
   detailsGridEl.innerHTML = ''
   summaryEl.innerHTML = ''
+  clearSessionPanel()
   if (message) {
     const p = document.createElement('p')
     p.className = 'ask-findings-empty'
@@ -983,6 +1050,13 @@ detailsToggle.addEventListener('click', () => {
   detailsToggle.setAttribute('aria-expanded', String(open))
   detailsSymbol.textContent = open ? '−' : '＋'
   detailsToggle.lastChild.textContent = open ? ' 세부 분석 접기' : ' 세부 분석 펼치기'
+})
+
+sessionToggle.addEventListener('click', () => {
+  const collapsed = sessionSection.classList.toggle('is-collapsed')
+  sessionToggle.setAttribute('aria-expanded', String(!collapsed))
+  sessionToggle.setAttribute('aria-label', collapsed ? '현재 세션 펼치기' : '현재 세션 접기')
+  sessionToggle.textContent = collapsed ? '⌄' : '⌃'
 })
 
 // 목록이 비었을 때(처음 켰거나 마지막 하나를 뺐을 때). 그래프를 비우고 무엇을 해야 하는지 쓴다.
