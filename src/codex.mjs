@@ -32,6 +32,15 @@
 //
 // 세 세대의 id 는 서로 안 겹치고(1∩2, 1∩3, 2∩3 모두 0건) id 가 빈 것도 0건이다.
 // 합쳐서 유일한 호출이 424건인데 3세대만 읽으면 199건, 47% 다.
+//
+// **token_count / rate_limits verdict.** 실측(2026-09-28, ~/.codex/sessions 397개 파일):
+// token_count 이벤트는 event_msg.payload.type === 'token_count' 로 난다. 연속 두 줄을
+// 비교하면 info.total_token_usage 는 누적(cumulative)이고 info.last_token_usage 는
+// 한 턴(delta)이다. 캐시 필드(cached_input_tokens, cache_write_input_tokens)가 있다.
+// token_count 안에는 cwd 필드가 없고(cwd-field), 세션 단위라 서브에이전트별로 쪼개진
+// 값(subagent-split)도 없다. rate_limits 는 token_count 의 payload.rate_limits 안에
+// 중첩돼 있다; 별도의 rate_limits 이벤트는 관측되지 않았다. 판정 문구는
+// cumulative-or-delta, cache-field, cwd-field, subagent-split 네 가지다.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -90,7 +99,7 @@ function parseMeta(payload) {
 // 실측(2026-09-02): 249개, 975MB. 캐시 없이 매번 다 읽으면 약 2.5초 — Claude 전사 캐싱과
 // 같은 이유로 캐시를 쓴다(전사는 append-only 라 크기+mtime 만으로 안 바뀐 파일을 안다).
 export function extractCodexFile(file) {
-  const row = { meta: null, spawnCalls: [], mcpCalls: [], turns: 0, lastTs: null, models: {} }
+  const row = { meta: null, spawnCalls: [], mcpCalls: [], turns: 0, lastTs: null, models: {}, tokenCounts: [], rateLimits: [] }
   for (const line of readLines(file)) {
     let d
     try {
@@ -115,6 +124,28 @@ export function extractCodexFile(file) {
     }
     if (d.type === 'event_msg') {
       const pt = d.payload?.type
+      // token_count 와 중첩된 rate_limits 를 뽑는다. 실제 토큰 값은 축(Todo 5)에서
+      // 쓸 수 있지만 여기서는 판정 문구만 기록하고 로그에는 찍지 않는다.
+      if (pt === 'token_count') {
+        const info = d.payload?.info
+        row.tokenCounts.push({
+          ts: d.timestamp ?? null,
+          total: info?.total_token_usage ?? null,
+          last: info?.last_token_usage ?? null,
+          modelContextWindow: info?.model_context_window ?? null,
+        })
+        const rl = d.payload?.rate_limits
+        if (rl) {
+          row.rateLimits.push({
+            ts: d.timestamp ?? null,
+            limitId: rl.limit_id ?? null,
+            primary: rl.primary ?? null,
+            secondary: rl.secondary ?? null,
+            credits: rl.credits ?? null,
+          })
+        }
+        continue
+      }
       // 턴 수: task_complete 를 센다(완료된 턴). task_started 도 거의 같은 수인데(실측 예:
       // 이 저장소 세션 하나가 11/11) 마지막 턴이 안 끝났으면 하나 적게 잡힌다 — Claude 의
       // turn_duration 처럼 "끝난 턴"만 세는 쪽이 뜻이 더 맞다.

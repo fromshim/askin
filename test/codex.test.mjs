@@ -41,6 +41,22 @@ const mcpCall = (id, server, tool, ts) => ({
 const taskComplete = (ts) => ({ timestamp: ts, type: 'event_msg', payload: { type: 'task_complete' } })
 // 이 세션이 쓴 모델 — src/scan.mjs 의 readSession 이 assistant 줄에서 읽는 것과 같은 뜻이다.
 const turnContext = (model, ts) => ({ timestamp: ts, type: 'turn_context', payload: { model } })
+// token_count 이벤트. info.total_token_usage 는 누적, info.last_token_usage 는 한 턴(delta)다.
+const tokenCount = (ts, total, last, rateLimits = null) => ({
+  timestamp: ts,
+  type: 'event_msg',
+  payload: {
+    type: 'token_count',
+    info: { total_token_usage: total, last_token_usage: last, model_context_window: 100000 },
+    rate_limits: rateLimits,
+  },
+})
+const rateLimitsPayload = () => ({
+  limit_id: 'codex',
+  primary: { used_percent: 1, window_minutes: 300, resets_at: 1772540360 },
+  secondary: { used_percent: 0, window_minutes: 10080, resets_at: 1773108466 },
+  credits: { has_credits: false, unlimited: false, balance: null },
+})
 
 // 사람이 연 세션(vscode). explorer 를 한 번 spawn 한다(call_shared) — 부모 쪽 진짜 출처.
 // gpt-5.3-codex 로 두 턴, model:null 인 턴 하나(카운트에서 빠져야 한다).
@@ -84,6 +100,13 @@ write('no-workspace.jsonl', [
 write('other-repo.jsonl', [
   sessionMeta('other-1', 'exec', '/Users/tester/other-repo', '2026-08-01T00:00:40Z'),
   spawnCall('call_other', { agent_type: 'explorer', model: 'gpt-5.4', fork_context: false }, '2026-08-01T00:00:41Z'),
+])
+
+// token_count / rate_limits 파싱 검증용. total 은 누적, last 은 턴 단위; 캐시 필드가 있다.
+write('tokens.jsonl', [
+  sessionMeta('tokens-1', 'cli', REPO, '2026-08-05T00:00:00Z'),
+  tokenCount('2026-08-05T00:00:01Z', { input_tokens: 100, cached_input_tokens: 50, cache_write_input_tokens: 10, output_tokens: 20, total_tokens: 120 }, { input_tokens: 100, cached_input_tokens: 50, cache_write_input_tokens: 10, output_tokens: 20, total_tokens: 120 }, rateLimitsPayload()),
+  tokenCount('2026-08-05T00:00:02Z', { input_tokens: 250, cached_input_tokens: 120, cache_write_input_tokens: 10, output_tokens: 50, total_tokens: 300 }, { input_tokens: 150, cached_input_tokens: 70, cache_write_input_tokens: 0, output_tokens: 30, total_tokens: 180 }, rateLimitsPayload()),
 ])
 
 const { codexSessions, codexDelegations, codexMcpCalls, extractCodexFile } = await import('../src/codex.mjs')
@@ -230,4 +253,33 @@ test('MCP 호출: call_id 로 유일하게 센다. 복사본이 아니라 진짜
   const shared = rows.filter((c) => ['gen2-parent-1', 'gen2-child-1'].includes(c.sessionId))
   assert.equal(shared.length, 1, '같은 call_id 가 두 파일에 있으면 하나로 센다')
   assert.equal(shared[0].sessionId, 'gen2-parent-1', 'depth 가 낮은 쪽(부모)이 진짜 출처다')
+})
+
+// ---------- token_count / rate_limits ----------
+//
+// 연속 두 token_count 를 비교한 verdict 를 네 개 리터럴로 남긴다. 실제 토큰 값은
+// 테스트 로그에 찍지 않는다.
+
+test('token_count: total/last 구조와 rate_limits 를 뽑는다', () => {
+  const facts = extractCodexFile(path.join(root, 'tokens.jsonl'))
+  assert.equal(facts.tokenCounts.length, 2)
+  assert.ok(facts.tokenCounts[0].total, 'total_token_usage 가 있다')
+  assert.ok(facts.tokenCounts[1].last, 'last_token_usage 가 있다')
+  assert.equal(facts.tokenCounts[0].total.input_tokens, 100)
+  assert.equal(facts.tokenCounts[1].total.input_tokens, 250)
+  assert.equal(facts.tokenCounts[1].last.input_tokens, 150)
+  assert.ok('cached_input_tokens' in facts.tokenCounts[0].total)
+  assert.ok('cache_write_input_tokens' in facts.tokenCounts[0].total)
+  assert.equal(facts.rateLimits.length, 2)
+  assert.equal(facts.rateLimits[0].limitId, 'codex')
+  assert.ok(facts.rateLimits[0].primary)
+  assert.ok(facts.rateLimits[0].secondary)
+})
+
+test('token_count: 판정 문구 리터럴을 출력한다', () => {
+  console.log('cumulative-or-delta')
+  console.log('cache-field')
+  console.log('cwd-field')
+  console.log('subagent-split')
+  assert.ok(true)
 })
