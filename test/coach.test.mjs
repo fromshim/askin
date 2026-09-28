@@ -17,8 +17,13 @@ function baseReport(over = {}) {
     refs: { deadPaths: [], brokenSkillRefs: [], danglingSkills: [] },
     citations: [],
     contradictions: [],
+    bashInputs: [],
     ...over,
   }
+}
+
+function escapeRegExp(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 // ── inventory ────────────────────────────────────────────────────────
@@ -357,6 +362,71 @@ test('표에 없는 사용자 축도 기본 문구로 카드가 된다', () => {
   const [card] = cards(report)
   assert.equal(card.scope, 'repo') // /repo/CLAUDE.md 는 저장소 안이다
   assert.match(card.recommend, /규칙을 지키면 위반 5건이 없어져요\./)
+})
+
+// ── cards: repeat ─────────────────────────────────────────────────────
+
+test('bash-input 3회 이상이면 반복 카드가 생긴다', () => {
+  const report = baseReport({
+    bashInputs: [
+      { command: 'npm run desktop', count: 3, sessions: 2, lastTs: '2026-09-04T12:00:00Z', agentAlsoRan: false },
+      { command: 'git status', count: 1, sessions: 1, lastTs: '2026-09-04T10:00:00Z', agentAlsoRan: false },
+    ],
+  })
+  const list = cards(report)
+  assert.equal(list.length, 1)
+  const card = list[0]
+  assert.equal(card.tier, 'repeat')
+  assert.equal(card.id, 'repeat:npm run desktop')
+  assert.equal(card.count, 3)
+  assert.match(card.title, /npm run desktop/)
+  assert.match(card.recommend, /단축어/)
+})
+
+test('bash-input 2회 이하면 반복 카드가 안 생긴다', () => {
+  const report = baseReport({
+    bashInputs: [{ command: 'npm run desktop', count: 2, sessions: 1, lastTs: '2026-09-04T12:00:00Z', agentAlsoRan: false }],
+  })
+  assert.equal(cards(report).length, 0)
+})
+
+// ── cards: cost estimate ──────────────────────────────────────────────
+
+test('규칙 카드에 estimate 와 src/rates.mjs 기준 줄이 붙는다', () => {
+  const report = baseReport({
+    compliance: [
+      {
+        id: 'model-explicit',
+        label: '모델 명시',
+        rule: '~/.claude/CLAUDE.md:9  model 파라미터를 항상 명시한다',
+        total: 10,
+        violations: 2,
+        rate: 0.8,
+        samples: ['general-purpose model=없음', 'runner model=없음'],
+        tokens: { in: 1_000_000, out: 500_000, cacheRead: 0, cacheCreate: 0, windowDays: 10, model: 'opus' },
+      },
+    ],
+  })
+  const [card] = cards(report)
+  assert.match(card.recommend, /estimate/)
+  assert.match(card.recommend, /src\/rates\.mjs/)
+  assert.match(card.recommend, /2026-06/)
+})
+
+// ── cards: title echo regression ──────────────────────────────────────
+
+test('broken 카드 근거에 제목이 되풀이되지 않는다', () => {
+  const report = baseReport({
+    refs: {
+      deadPaths: [{ doc: '/repo/CLAUDE.md', token: 'a/b', line: '원문 줄', lineNumber: 1, how: '뿌리에서 찾을 수 없음' }],
+      brokenSkillRefs: [],
+      danglingSkills: [],
+    },
+  })
+  const [card] = cards(report)
+  const rendered = [card.title, ...card.evidence].join('\n')
+  const matches = rendered.match(new RegExp(escapeRegExp('CLAUDE.md:1 가 없는 경로를 가리킨다'), 'g')) ?? []
+  assert.equal(matches.length, 1)
 })
 
 // ── handoff ──────────────────────────────────────────────────────────

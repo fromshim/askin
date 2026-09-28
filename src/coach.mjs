@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { findings, plan, KIND_NAMES } from './fix.mjs'
 import { harnessDocs, agentDefs, skillIndex } from './refs.mjs'
 import { NO_DEFINITION } from './graph.mjs'
+import { RATE_BASIS } from './rates.mjs'
 
 // ── inventory: 하네스 요약 띠 ──────────────────────────────────────────
 
@@ -108,13 +109,14 @@ function scopePrefix(scope) {
   return ''
 }
 
-// 카드 근거 한 줄. fix.mjs 의 title(어디서)·detail(무엇을, 원문 첫 줄)을 그대로 잇는다.
-// 새로 찾지 않는다 — findings() 가 이미 뽑은 사실만 옮긴다.
+// 카드 근거 한 줄. fix.mjs 의 detail(무엇을, 원문 첫 줄)을 그대로 잇는다.
+// title 은 카드 제목에만 쓰고 근거에서는 되풀이하지 않는다 — 그렇지 않으면 한 사실이
+// 제목과 근거 두 곳에 똑같이 찍힌다(desktop/wireframe.md 5절 title echo).
 function coreFact(f) {
   const first = String(f.detail ?? '')
     .split('\n')[0]
     .trim()
-  return first ? `${f.title} — ${first}` : f.title
+  return first || null
 }
 
 // 최대 3줄, 넘치면 "외 N건"으로 접는다(지시서: "최대 3줄, 넘치면 외 N건").
@@ -183,7 +185,7 @@ function brokenCard(kind, scope, group) {
     kind,
     axisId: null,
     title,
-    evidence: withOverflow(group.slice(0, 3).map(coreFact), n),
+    evidence: withOverflow(group.slice(0, 3).map(coreFact).filter(Boolean), n),
     caution: spec.caution ? spec.caution() : null,
     recommend: spec.recommend(n, scope),
     count: n,
@@ -222,6 +224,54 @@ const RULE_DEFAULT_META = {
   recommend: (n) => `규칙을 지키면 위반 ${n}건이 없어져요.`,
 }
 
+// 손으로 타이핑한 명령이 3번 이상 나오면 반복 카드로 올린다. subagent 전사는
+// scan.mjs 에서 이미 걸러졌으므로 여기서는 report.bashInputs 를 그대로 쓴다.
+function repeatCard(cmd, repo) {
+  const n = cmd.count
+  const scope = repo ? 'repo' : 'global'
+  return {
+    id: `repeat:${cmd.command}`,
+    tier: 'repeat',
+    scope,
+    sure: true,
+    kind: null,
+    axisId: null,
+    title: `\`${cmd.command}\`를 ${n}번 손으로 타이핑했다`,
+    evidence: withOverflow(
+      [
+        `${n}번 (최근 ${cmd.lastTs ? cmd.lastTs.slice(0, 10) : '기록 없음'})${
+          cmd.agentAlsoRan ? ' · 에이전트도 같은 명령 실행' : ''
+        }`,
+      ],
+      1,
+    ),
+    caution: null,
+    recommend: `단축어·별칭·스크립트로 줄이면 반복 입력 ${n}번을 줄일 수 있어요.`,
+    count: n,
+    files: [],
+    findings: [cmd],
+  }
+}
+
+// 위반의 실제 모델과 기준 모델 간 추정 비용 차액을 낸다.
+// runner 위반은 기준을 haiku 로, 나머지는 sonnet 으로 본다.
+// 토큰 데이터가 없으면 아무것도 붙이지 않는다.
+function costLabel(axis) {
+  const tokens = axis.tokens
+  if (!tokens) return null
+  const basisModel = axis.id === 'chore-model' ? 'haiku' : 'sonnet'
+  const actualModel = tokens.model ?? basisModel
+  const basisRate = RATE_BASIS.models[basisModel]
+  const actualRate = RATE_BASIS.models[actualModel] ?? basisRate
+  if (!basisRate || !actualRate) return null
+  const cost = (rate) =>
+    (tokens.in * rate.input + tokens.out * rate.output + tokens.cacheRead * rate.cacheRead + tokens.cacheCreate * rate.cacheCreate) / 1_000_000
+  const windowDiff = Math.max(0, cost(actualRate) - cost(basisRate))
+  const monthlyDiff = RATE_BASIS.monthly(windowDiff, tokens.windowDays ?? 1)
+  const fmt = (n) => (n < 0.01 ? '$0.00' : `$${n.toFixed(2)}`)
+  return `월 ${fmt(monthlyDiff)} 추정 절감(기준: src/rates.mjs, ${RATE_BASIS.basisDate} 단가, ${actualModel}→${basisModel}, estimate)`
+}
+
 // 규칙 원문 맨 앞 토큰이 파일 경로면 그 파일을, 아니면(예: "에이전트가 선언한 스킬이
 // 실재해야 한다"처럼 근거 파일이 없는 축) null 을 낸다. axes.mjs 의 citation() 이 이미
 // rule 문자열에 줄 번호를 박아 넣으므로(`~/.claude/CLAUDE.md:9  …`) 그 줄 번호만 뗀다.
@@ -253,6 +303,7 @@ function ruleCard(axis, repo) {
   const meta = RULE_META[axis.id] ?? RULE_DEFAULT_META
   const scope = ruleScope(axis.rule, repo)
   const n = axis.violations
+  const cost = costLabel(axis)
   return {
     id: `rule:${axis.id}`,
     tier: 'rule',
@@ -263,7 +314,7 @@ function ruleCard(axis, repo) {
     title: `${scopePrefix(scope)}${axis.label} ${axis.total}건 중 ${n}건 위반`,
     evidence: withOverflow([...(axis.samples ?? [])], n),
     caution: null,
-    recommend: meta.recommend(n),
+    recommend: cost ? `${meta.recommend(n)} ${cost}` : meta.recommend(n),
     count: n,
     files: ruleFiles(axis.rule, repo),
     findings: axis.samples ?? [],
@@ -281,6 +332,15 @@ function ruleCard(axis, repo) {
 export function cards(report, { ignored = [] } = {}) {
   const ignoredSet = new Set(ignored)
   const out = []
+
+  // 반복 카드: 손으로 타이핑한 bash-input 이 3번 이상. subagent 는 scan.mjs 에서
+  // 걸러졌으므로 여기서는 main 세션만 들어온 report.bashInputs 를 쓴다.
+  const repeats = [...(report.bashInputs ?? [])].filter((c) => c.count >= 3)
+  repeats.sort((a, b) => b.count - a.count || a.command.localeCompare(b.command))
+  for (const cmd of repeats) {
+    const card = repeatCard(cmd, report.scope?.repo)
+    if (!ignoredSet.has(card.id)) out.push(card)
+  }
 
   for (const axis of report.compliance) {
     if (!(axis.violations > 0) || axis.unavailable) continue // 분모가 비어 판정 불가면 카드가 아니다

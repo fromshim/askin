@@ -1,0 +1,35 @@
+✔ inventory 가 저장소 갈래를 저장소 폴더에서만 센다 (37.264417ms)
+✔ inventory 가 스킬 usedByScope 네 갈래를 다 채운다 (26.487459ms)
+✔ inventory 의 mcp 는 노드가 없으면 top 이 null 이다 (36.495042ms)
+✔ inventory 의 mcp top 은 호출이 가장 많은 서버다 (42.245875ms)
+✔ 죽은 경로 1건은 전역 칩이 붙은 카드 한 장이다 (0.743375ms)
+✔ 같은 종류·같은 범위의 심링크 3건이 카드 한 장으로 묶인다 (0.376042ms)
+✔ 저장소 안 심링크는 전역 칩이 안 붙는다 (0.572ms)
+✔ 4건이 넘으면 근거 줄이 외 N건으로 접힌다 (0.35025ms)
+✔ 모순 후보의 근거가 저장소·전역에 걸치면 scope 가 mixed 다 (0.196791ms)
+✔ broken 카드는 fix.mjs KIND_NAMES 순서를 따른다 (0.483209ms)
+✔ 문제 아님으로 무시한 id 는 다시 안 나온다 (0.292916ms)
+✔ 같은 report 로 두 번 불러도 카드 id 가 같다 (0.167917ms)
+✔ 위반이 있고 판정 가능한 축만 규칙 카드가 된다 (0.47175ms)
+✔ 규칙 카드가 rule → broken 순으로 온다 (0.126375ms)
+✔ 근거 파일이 없는 규칙(스킬 선언·훅)은 저장소 범위로 잡고 기본 문구를 쓴다 (0.450542ms)
+✔ 표에 없는 사용자 축도 기본 문구로 카드가 된다 (0.103417ms)
+✔ bash-input 3회 이상이면 반복 카드가 생긴다 (0.406833ms)
+✔ bash-input 2회 이하면 반복 카드가 안 생긴다 (0.153584ms)
+✔ 규칙 카드에 estimate 와 src/rates.mjs 기준 줄이 붙는다 (0.303375ms)
+✔ broken 카드 근거에 제목이 되풀이되지 않는다 (0.26325ms)
+✔ handoff 가 broken 카드에 fix.mjs 지시서를 그대로 싣는다 (1.267ms)
+✔ handoff 가 rule 카드에 규칙·재는 방식·몰린 곳·표본·건드릴 파일·끝나면을 담는다 (1.308958ms)
+✔ handoff 는 repo 를 안 주면 report.scope.repo 를 쓴다 (0.582833ms)
+✔ 없는 파일을 읽으면 빈 목록이다 (0.255834ms)
+✔ 저장하고 읽으면 그대로 돌아온다 (0.518625ms)
+✔ HARNESS_BRO_IGNORED 로 경로를 바꿀 수 있다 (0.327583ms)
+✔ inventory 의 hooks 는 report.hookTotals 를 그대로 받고, 없으면 null 이다 (53.530458ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 269.763375
