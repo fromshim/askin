@@ -83,6 +83,13 @@ function mulberry32(seed) {
   }
 }
 
+// ASKIN_SHOT 경로에서 라벨 박스 JSON 경로를 유추한다. 끝이 .png 면 -boxes.json 로,
+// 아니면 .boxes.json 로 붙인다.
+function boxesPath(pngPath) {
+  if (pngPath.endsWith('.png')) return pngPath.slice(0, -4) + '-boxes.json'
+  return pngPath + '.boxes.json'
+}
+
 function createWindow() {
   // ASKIN_THEME=dark|light 면 OS 설정과 무관하게 이 앱만 그 테마로 강제한다(nativeTheme.themeSource
   // 는 Electron 앱 안에서만 prefers-color-scheme 을 바꾼다 — 시스템 설정 자체는 안 건드린다).
@@ -115,14 +122,15 @@ function createWindow() {
     console.error('[renderer gone]', details)
   })
 
-  // ASKIN_SHOT=<png 경로> 면 창을 띄우고 데이터가 로드된 뒤 스크린샷을 찍고 종료한다.
-  // 렌더러가 준비되면 document.title 을 'askin:ready' 로 바꾸는데(테스트 쿼리에서만),
-  // 그 신호를 새 IPC 채널 없이 page-title-updated 로 받는다.
-  const shotPath = process.env.ASKIN_SHOT
-  const query = new URLSearchParams()
-  if (shotPath) {
-    query.set('shot', '1')
-    if (process.env.ASKIN_SHOT_PROJECT) query.set('project', process.env.ASKIN_SHOT_PROJECT)
+// ASKIN_SHOT=<png 경로> 면 창을 띄우고 데이터가 로드된 뒤 스크린샷을 찍고 종료한다.
+// 렌더러가 준비되면 document.title 을 'askin:ready' 로 바꾸는데(테스트 쿼리에서만),
+// 그 신호를 새 IPC 채널 없이 page-title-updated 로 받는다.
+const shotPath = process.env.ASKIN_SHOT
+const query = new URLSearchParams()
+if (shotPath) {
+  query.set('shot', '1')
+  if (process.env.ASKIN_SHOT_PROJECT) query.set('project', process.env.ASKIN_SHOT_PROJECT)
+  if (process.env.ASKIN_LABELSET) query.set('labelset', process.env.ASKIN_LABELSET)
     win.webContents.on('page-title-updated', async (event, title) => {
       if (title !== 'askin:ready') return
       event.preventDefault()
@@ -176,6 +184,9 @@ function createWindow() {
       const img = await win.webContents.capturePage()
       fs.mkdirSync(path.dirname(shotPath), { recursive: true })
       fs.writeFileSync(shotPath, img.toPNG())
+      // shot 모드에서 렌더러가 노출한 라벨 박스도 같이 남긴다.
+      const boxesJson = await win.webContents.executeJavaScript('window.__askinLabelBoxes()')
+      fs.writeFileSync(boxesPath(shotPath), boxesJson)
       app.quit()
     })
   }

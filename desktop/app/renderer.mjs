@@ -15,6 +15,14 @@ import { prettyModelName } from './model-name.mjs'
 const root = document.getElementById('askin-desktop-v1')
 const params = new URLSearchParams(location.search)
 const isShotMode = params.get('shot') === '1'
+const labelsetName = params.get('labelset') || 'default'
+
+// labelset: 240px 맵에서 라벨이 겹치지 않도록 조정한 상수. before 는 원래 값 그대로.
+const LABELSETS = {
+  before: { LABEL_ALL_BELOW: 16, labelRenderedSizeThreshold: 8, labelDensity: 1 },
+  default: { LABEL_ALL_BELOW: 6, labelRenderedSizeThreshold: 40, labelDensity: 0.1 },
+}
+const ls = LABELSETS[labelsetName] ?? LABELSETS.default
 
 const projectsEl = document.getElementById('ask-projects')
 const addProjectBtn = document.getElementById('ask-add-project')
@@ -51,7 +59,10 @@ const PROJECT_MIN_SIZE = 12 // desktop/design-concept.md: 호출 수와 무관�
 const sizeFor = (calls) => 4 + Math.sqrt(calls) * 1.6
 // 이 수 이하면 라벨을 전부 띄운다. 실측: 저장소 20곳의 노드 수가 중앙값 6.5, 최대 31 이고
 // 그중 절반이 3개 이하다. 16 이면 중앙값 규모를 다 덮고 31개짜리에서만 임계값이 살아난다.
-const LABEL_ALL_BELOW = 16
+// labelset 쿼리 파라미터로 오버라이드한다(기본값은 240px 맵용 재조정 값).
+const LABEL_ALL_BELOW = ls.LABEL_ALL_BELOW
+const labelRenderedSizeThreshold = ls.labelRenderedSizeThreshold
+const labelDensity = ls.labelDensity
 const thicknessFor = (weight) => Math.min(8, 1 + Math.sqrt(weight ?? 1) * 0.4)
 const DECLARED_THICKNESS = 1.7 // Sigma minEdgeThickness 와 같은 바닥값. 시각적으로 짝을 맞춘다
 
@@ -60,6 +71,10 @@ let allEdges = [] // 팝오버의 "누가 몇 번 불렀는지" 내역용 원본
 let selectedNode = null
 let hoveredNode = null
 const activeNode = () => selectedNode || hoveredNode
+
+// shot 모드에서 실제로 그려진 라벨의 바욷딩 박스를 모은다. Sigma 가 호출하는 drawNodeLabel
+// 안에서만 기록하면 밀도 제어로 숨겨진 라벨은 자연스럽게 빠진다.
+const labelBoxes = []
 
 const graph = new graphology.Graph()
 let renderer = null // initGraphRenderer() 가 첫 buildGraph() 뒤에 채운다
@@ -106,6 +121,16 @@ function drawNodeLabel(context, data, settings) {
   context.globalAlpha = data.dim ? 0.55 : 1
   context.fillText(data.label, data.x, data.y + data.size + 4)
   context.globalAlpha = 1
+  if (isShotMode) {
+    const metrics = context.measureText(data.label)
+    labelBoxes.push({
+      label: data.label,
+      x: data.x - metrics.width / 2,
+      y: data.y + data.size + 4,
+      width: metrics.width,
+      height: size,
+    })
+  }
 }
 
 // declared 엣지는 Sigma 그래프에 안 넣는다(실선으로만 그려져서). SVG 오버레이로 점선을 그린다 —
@@ -539,14 +564,17 @@ function initGraphRenderer() {
     // Sigma 는 호버용 렌더러가 따로 있다(defaultDrawNodeHover). 안 덮으면 호버할 때마다
     // 기본 위치(노드 오른쪽)에 라벨을 하나 더 그린다 — 프로브 실측.
     defaultDrawNodeHover: drawNodeLabel,
-    labelRenderedSizeThreshold: 8,
-    labelDensity: 1,
+    labelRenderedSizeThreshold,
+    labelDensity,
     renderEdgeLabels: false,
     // Sigma 기본값(1.7) 아래로 내리면 대부분의 엣지가 서브픽셀이 되어 안 보인다(프로브 실측).
     minEdgeThickness: 1.7,
     zIndex: true,
   })
   camera = renderer.getCamera()
+
+  // shot 모드에서 매 프레임 라벨 박스 목록을 비운다. 그려질 때만 다시 채워진다.
+  if (isShotMode) renderer.on('beforeRender', () => { labelBoxes.length = 0 })
 
   renderer.setSetting('nodeReducer', (node, data) => {
     const res = { ...data }
@@ -1074,6 +1102,7 @@ async function main() {
       const mapRect = mapEl.getBoundingClientRect() // graphToViewport 는 mapEl 기준 좌표라(실측) 창 좌표로 옮긴다
       return { x: mapRect.left + pt.x, y: mapRect.top + pt.y }
     }
+    window.__askinLabelBoxes = () => JSON.stringify(labelBoxes)
     document.title = 'askin:ready'
   }
 }
