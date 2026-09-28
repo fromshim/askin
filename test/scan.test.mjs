@@ -352,3 +352,54 @@ test('서브에이전트에서 막힌 도구도 그 세션 차단으로 센다',
   const withTurns = [{ ...s, turns: 100 }]
   assert.equal(guard.compute({ sessions: withTurns }).value, 2) // 100턴당 2건
 })
+
+test('위임 행에 서브에이전트 토큰이 붙는다', () => {
+  // 병렬 호출에서 같은 message.id 를 공유할 때 tool_use id 는 다르지만,
+  // 서브에이전트 전사의 usage 는 message.id 별로 last-line-wins 로 센다.
+  // <synthetic> 줄은 API 호출이 아니라 토큰에 안 든다.
+  const S3 = 'proj-a/33333333-3333-3333-3333-333333333333'
+  meta(`${S3}/subagents/agent-x.meta.json`, { agentType: 'general-purpose', model: 'sonnet', spawnDepth: 1, toolUseId: 'toolu_x' })
+
+  const usageLine = (mid, u, model = 'claude-opus-5') =>
+    JSON.stringify({
+      type: 'assistant',
+      timestamp: '2026-09-04T00:00:00Z',
+      message: {
+        id: mid,
+        model,
+        usage: { input_tokens: u[0], output_tokens: u[1], cache_read_input_tokens: u[2], cache_creation_input_tokens: u[3] },
+      },
+    })
+
+  fs.writeFileSync(
+    path.join(root, S3, 'subagents', 'agent-x.jsonl'),
+    [
+      usageLine('msg_P', [10, 1, 5, 1]),
+      usageLine('msg_P', [10, 2, 5, 1]), // 같은 message.id: 마지막 줄만 센다
+      usageLine('msg_Q', [7, 7, 0, 0], '<synthetic>'), // synthetic: 0 으로 처리
+    ].join('\n') + '\n',
+  )
+
+  // 부모 전사에 Agent 도구 호출이 있어야 dispatchId 가 생긴다
+  fs.writeFileSync(
+    path.join(root, `${S3}.jsonl`),
+    [
+      JSON.stringify({
+        type: 'assistant',
+        timestamp: '2026-09-04T00:00:00Z',
+        message: { id: 'msg_P', content: [{ type: 'tool_use', id: 'toolu_x', name: 'Agent', input: {} }] },
+      }),
+    ].join('\n') + '\n',
+  )
+
+  const rows = delegations(root, { cache: false })
+  const pass = transcriptPass(root, { cache: false })
+  const joined = withDispatch(rows, root, pass)
+  const r = joined.find((x) => x.agentId === 'agent-x')
+  assert.equal(r.dispatchId, 'msg_P')
+  // 위임 단위 토큰은 합계라 in/out/cacheRead/cacheCreate 만 본다.
+  assert.equal(r.tokens.in, 10)
+  assert.equal(r.tokens.out, 2)
+  assert.equal(r.tokens.cacheRead, 5)
+  assert.equal(r.tokens.cacheCreate, 1)
+})

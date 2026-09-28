@@ -567,22 +567,57 @@ export function transcriptPass(root = ROOT, { cache = true, scanner = null } = {
     t.cacheRead += cacheRead
     t.cacheCreate += cacheCreate
   }
-  return { dispatch, tokens, status, calls, files: store.save() }
+  // 위임 행에 붙일 서브에이전트 단위 토큰. withDispatch 에서 파일 경로로 조인한다.
+  const delegationTokens = new Map()
+  for (const { file, isSub } of found) {
+    if (!isSub) continue
+    const facts = all.get(file)
+    if (!facts?.usage) continue
+    delegationTokens.set(file, sumUsage(facts))
+  }
+  return { dispatch, tokens, status, calls, delegationTokens, files: store.save() }
 }
 
 function newTokens() {
   return { in: 0, out: 0, cacheRead: 0, cacheCreate: 0 }
 }
 
+// 서브에이전트 전사 파일의 usage 를 위임 행에 붙인다.
+// extractFile() 이 이미 message.id 단위 last-line-wins 와 <synthetic> 걸러내기를
+// 하므로 같은 패턴을 두 번 만들지 않고 그 결과를 합하기만 한다.
+function sumUsage(facts) {
+  const t = newTokens()
+  for (const [, ...row] of facts.usage) {
+    t.in += row[0]
+    t.out += row[1]
+    t.cacheRead += row[2]
+    t.cacheCreate += row[3]
+  }
+  return t
+}
+
+// 위임 행이 가리키는 서브에이전트 전사 경로를 되돌린다.
+// workflow 에이전트는 subagents/workflows/<wf-id>/ 아래에 있다.
+function subagentJsonlPath(row, root) {
+  const parts = [root, row.project, row.sessionId, 'subagents']
+  if (row.workflowId) parts.push('workflows', row.workflowId)
+  parts.push(`${row.agentId}.jsonl`)
+  return path.join(...parts)
+}
 
 // 위임에 message.id 를 붙인다. 같은 message.id 면 한 번에 띄운 갈래다.
+// 서브에이전트 전사의 usage 도 함께 붙여 위임 단위로 본다.
 export function withDispatch(rows, root = ROOT, pass) {
-  const { dispatch, status } = pass ?? transcriptPass(root)
-  return rows.map((r) => ({
-    ...r,
-    dispatchId: (r.toolUseId && dispatch.get(r.toolUseId)) ?? null,
-    status: (r.toolUseId && status.get(r.toolUseId)) ?? null,
-  }))
+  const { dispatch, status, delegationTokens } = pass ?? transcriptPass(root)
+  return rows.map((r) => {
+    const file = subagentJsonlPath(r, root)
+    return {
+      ...r,
+      dispatchId: (r.toolUseId && dispatch.get(r.toolUseId)) ?? null,
+      status: (r.toolUseId && status.get(r.toolUseId)) ?? null,
+      tokens: delegationTokens?.get(file) ?? newTokens(),
+    }
+  })
 }
 
 // 세션 UUID 를 들고 내려간다. 서브에이전트 전사는 <세션UUID>/subagents/ 아래에 있어서
