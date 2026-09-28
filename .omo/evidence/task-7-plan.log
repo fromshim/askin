@@ -1,0 +1,115 @@
+아쉬운 점 2건
+  · broken:dead-path:repo  CLAUDE.md:4 가 없는 경로를 가리킨다
+  · broken:dead-path:global  전역 CLAUDE.md:56 가 없는 경로를 가리킨다
+
+고칠 것 2건을 2갈래로 갈랐다. 파일이 안 겹치니 동시에 돌려도 된다.
+
+────────────────────────────────────────────────────────────────────────
+# lane-1: 하네스 고치기 (1건)
+
+저장소: `/Users/seungboshim/Projects/fromshim/harness-bro/.orca/workspaces/harness-bro/askin-sequential-impl`
+
+**이 갈래는 이 저장소 밖 파일을 고친다.** 전역 하네스라 다른 저장소 리포트에도
+같은 건이 나온다. 한 번 고치면 전부에서 사라지니 저장소별로 따로 고치지 마라.
+
+**경로처럼 생겼지만 경로가 아닌 것이 섞여 있다.** 실측하면 셋에 하나쯤이다.
+타임존(`Asia/Seoul`), 색 나열(`red/amber/green`),
+슬래시로 묶은 클래스 표기(`text-title/body/label/badge`) 가 그렇게 잡혔다.
+
+그래서 **지우기 전에 그게 경로인지 먼저 판단해라.** 경로가 아니면 문구를 건드리지 말고
+그렇게 보고해라. 경로인데 옮겨진 것이면 지우지 말고 새 경로로 고쳐라.
+
+## 고칠 것
+
+1. **CLAUDE.md:56 가 없는 경로를 가리킨다**
+    `origin/main` — git 이 아는 경로 어디에도 없음
+    원문: - **작업 시작 전에 `origin/main` 위로 리베이스한다.** 낡은 베이스에서 시작하면 대상 파일이 아예 없거나 충돌이 늦게 터진다
+
+## 건드릴 파일
+
+- `/Users/seungboshim/.claude/CLAUDE.md`
+
+## 건드리지 말 것
+
+다른 갈래가 동시에 이 파일들을 고치고 있다. **읽기만 하고 쓰지 마라.**
+
+- `CLAUDE.md`
+
+## 지킬 것
+
+- **거부 조건.** 지우기 전에 그게 진짜 죽은 것인지 대조해라. 아니면 지우지 말고 그렇게 보고해라
+- 커밋 전에 `git status --short` 로 내 파일만 올라가는지 확인해라
+
+## 끝나면
+
+```bash
+node /Users/seungboshim/Projects/fromshim/harness-bro/.orca/workspaces/harness-bro/askin-sequential-impl/src/report.mjs --repo /Users/seungboshim/Projects/fromshim/harness-bro/.orca/workspaces/harness-bro/askin-sequential-impl
+```
+
+이 갈래가 맡은 몫이다. 끝나면 이만큼 줄어 있어야 한다.
+
+- 문서가 가리키는데 없는 경로 **1건**
+
+전체는 지금 이렇다. 다른 갈래도 같이 도니까 총계는 이보다 더 줄 수 있다.
+
+- 문서가 가리키는데 없는 경로 **2건**
+- 선언했는데 없는 스킬 **0건**
+- 스킬 디렉터리의 깨진 심링크 **0건**
+- 근거가 사라진 축 **0건**
+- 모순 후보 **0건**
+
+안 줄었으면 고친 게 아니다. 늘었으면 뭔가 깨뜨린 것이다.
+
+────────────────────────────────────────────────────────────────────────
+# lane-2: 하네스 고치기 (1건)
+
+저장소: `/Users/seungboshim/Projects/fromshim/harness-bro/.orca/workspaces/harness-bro/askin-sequential-impl`
+
+**경로처럼 생겼지만 경로가 아닌 것이 섞여 있다.** 실측하면 셋에 하나쯤이다.
+타임존(`Asia/Seoul`), 색 나열(`red/amber/green`),
+슬래시로 묶은 클래스 표기(`text-title/body/label/badge`) 가 그렇게 잡혔다.
+
+그래서 **지우기 전에 그게 경로인지 먼저 판단해라.** 경로가 아니면 문구를 건드리지 말고
+그렇게 보고해라. 경로인데 옮겨진 것이면 지우지 말고 새 경로로 고쳐라.
+
+## 고칠 것
+
+1. **CLAUDE.md:4 가 없는 경로를 가리킨다**
+    `docs/_inbox/` — git 이 아는 경로 어디에도 없음
+    원문: 쓰는 법은 `README.md` 에 있다. 결정과 측정 함정의 기록은 저장소 밖(`docs/_inbox/`)에 둔다.
+
+## 건드릴 파일
+
+- `CLAUDE.md`
+
+## 건드리지 말 것
+
+다른 갈래가 동시에 이 파일들을 고치고 있다. **읽기만 하고 쓰지 마라.**
+
+- `/Users/seungboshim/.claude/CLAUDE.md`
+
+## 지킬 것
+
+- **거부 조건.** 지우기 전에 그게 진짜 죽은 것인지 대조해라. 아니면 지우지 말고 그렇게 보고해라
+- 커밋 전에 `git status --short` 로 내 파일만 올라가는지 확인해라
+
+## 끝나면
+
+```bash
+node /Users/seungboshim/Projects/fromshim/harness-bro/.orca/workspaces/harness-bro/askin-sequential-impl/src/report.mjs --repo /Users/seungboshim/Projects/fromshim/harness-bro/.orca/workspaces/harness-bro/askin-sequential-impl
+```
+
+이 갈래가 맡은 몫이다. 끝나면 이만큼 줄어 있어야 한다.
+
+- 문서가 가리키는데 없는 경로 **1건**
+
+전체는 지금 이렇다. 다른 갈래도 같이 도니까 총계는 이보다 더 줄 수 있다.
+
+- 문서가 가리키는데 없는 경로 **2건**
+- 선언했는데 없는 스킬 **0건**
+- 스킬 디렉터리의 깨진 심링크 **0건**
+- 근거가 사라진 축 **0건**
+- 모순 후보 **0건**
+
+안 줄었으면 고친 게 아니다. 늘었으면 뭔가 깨뜨린 것이다.
+

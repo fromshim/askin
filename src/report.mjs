@@ -24,6 +24,7 @@ import { compliance, observation, loadAxes, userAxesPath, checkCitations, citati
 import { save, delta, condense, saveKey, storePath } from './snapshot.mjs'
 import { render } from './render.mjs'
 import { counts, plan } from './fix.mjs'
+import { cards, loadIgnored } from './coach.mjs'
 import { watch, worseThings } from './watch.mjs'
 import { weeklySeries, sparkline, trendGap } from './series.mjs'
 
@@ -557,6 +558,47 @@ function runWatch(axes) {
   })
 }
 
+// 무시한 카드가 갈래 지시서에 다시 나오지 않게 finding 을 걷는다.
+// coach.mjs 의 scopeOf() 는 남겨두고, 같은 판정을 두 곳에 두지 않기 위해
+// 여기서는 id 계산에 필요한 최소한만 다시 쓴다.
+function scopeOfFiles(files, repo) {
+  if (!repo) return 'global'
+  const valid = files.filter(Boolean)
+  if (!valid.length) return 'global'
+  const inRepo = valid.map((f) => f === repo || f.startsWith(`${repo}/`))
+  if (inRepo.every(Boolean)) return 'repo'
+  if (inRepo.every((x) => !x)) return 'global'
+  return 'mixed'
+}
+
+function findingCardId(finding, kind, repo) {
+  if (kind === 'dangling-skill') {
+    return `broken:dangling-skill:${finding.scope ?? 'global'}`
+  }
+  let files
+  if (kind === 'dead-path') files = [finding.doc]
+  else if (kind === 'broken-skill') files = [finding.file]
+  else if (kind === 'citation') files = [finding.file ?? finding.cite]
+  else if (kind === 'contradiction') files = finding.evidence?.map((e) => e.file).filter(Boolean) ?? []
+  return `broken:${kind}:${scopeOfFiles(files, repo)}`
+}
+
+function reportWithoutIgnored(report, ignored) {
+  const ignoredSet = new Set(ignored)
+  const repo = report.scope?.repo
+  const keep = (f, kind) => !ignoredSet.has(findingCardId(f, kind, repo))
+  return {
+    ...report,
+    refs: {
+      deadPaths: report.refs?.deadPaths?.filter((f) => keep(f, 'dead-path')) ?? [],
+      brokenSkillRefs: report.refs?.brokenSkillRefs?.filter((f) => keep(f, 'broken-skill')) ?? [],
+      danglingSkills: report.refs?.danglingSkills?.filter((f) => keep(f, 'dangling-skill')) ?? [],
+    },
+    citations: report.citations?.filter((f) => keep(f, 'citation')) ?? [],
+    contradictions: report.contradictions?.filter((f) => keep(f, 'contradiction')) ?? [],
+  }
+}
+
 async function main() {
   const axes = await loadAxes()
   if (process.argv.includes('--watch')) return runWatch(axes)
@@ -600,21 +642,36 @@ async function main() {
       console.log('전 프로젝트 범위에서는 저장소 축을 못 뽑는다. 죽은 참조와 모순 후보는 저장소가 있어야 검사한다.')
       console.log('--repo <경로> 로 저장소를 골라라.\n')
     }
-    const p = plan(report)
-    if (p.total === 0) {
+    const ignored = loadIgnored()
+    const cardList = cards(report, { ignored })
+    const filteredReport = reportWithoutIgnored(report, ignored)
+    const p = plan(filteredReport)
+
+    if (p.total === 0 && cardList.length === 0) {
       // 저장소를 안 골랐으면 위에서 이미 말했다. 거기에 "깨끗하다"를 더하면 거짓말이 된다.
       if (repo) console.log('고칠 게 없다. 깨끗하다.')
       return
     }
-    console.log(
-      p.lanes.length === 1
-        ? `고칠 것 ${p.total}건. 파일이 서로 겹쳐서 한 갈래로 묶었다.\n`
-        : `고칠 것 ${p.total}건을 ${p.lanes.length}갈래로 갈랐다. 파일이 안 겹치니 동시에 돌려도 된다.\n`,
-    )
-    for (const lane of p.lanes) {
-      console.log('─'.repeat(72))
-      console.log(lane.prompt)
+
+    if (cardList.length > 0) {
+      console.log(`아쉬운 점 ${cardList.length}건${ignored.length ? ` (무시 ${ignored.length}건)` : ''}`)
+      for (const card of cardList) {
+        console.log(`  · ${card.id}  ${card.title}`)
+      }
       console.log()
+    }
+
+    if (p.total > 0) {
+      console.log(
+        p.lanes.length === 1
+          ? `고칠 것 ${p.total}건. 파일이 서로 겹쳐서 한 갈래로 묶었다.\n`
+          : `고칠 것 ${p.total}건을 ${p.lanes.length}갈래로 갈랐다. 파일이 안 겹치니 동시에 돌려도 된다.\n`,
+      )
+      for (const lane of p.lanes) {
+        console.log('─'.repeat(72))
+        console.log(lane.prompt)
+        console.log()
+      }
     }
     return
   }

@@ -1,0 +1,10 @@
+✔ cards() 와 --plan CLI 가 같은 id 목록을 낸다 (103.346708ms)
+✔ 무시한 id 는 cards() 와 --plan CLI 양쪽에서 빠진다 (164.488375ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 309.902375
