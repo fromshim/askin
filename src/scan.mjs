@@ -437,6 +437,11 @@ export function extractFile(file) {
   // message.id 가 없는 줄. 중복을 걸러낼 열쇠가 없으니 그대로 한 건으로 센다.
   // 실측(2026-09-13): 실물 전사에는 0건이다. 테스트 픽스처에는 있다.
   const loose = []
+  // 사용자가 직접 타이핑한 bash-input 태그를 수집한다.
+  const bashInputs = new Map()
+  // 같은 세션 안에서 에이전트가 Bash 도구로 실행한 명령. bash-input 과 비교한다.
+  const assistantBashCommands = new Set()
+  const isSubagentFile = file.includes('/subagents/')
 
   for (const line of readLines(file)) {
     // 끝난 상태는 queue-operation 줄에만 있다. 여기서 tool-use-id 로 이으면
@@ -447,13 +452,29 @@ export function extractFile(file) {
       if (m && REAL_STATUS.has(m[2])) status.push([m[1], m[2]])
     }
     // JSON.parse 는 비싸다. 문자열로 먼저 거른다
-    if (!line.includes('"tool_use"') && !line.includes('"usage"')) continue
+    // bash-input 태그는 사용자 줄에 있어서 tool_use/usage 와는 다른 경로로 수집한다.
+    if (!line.includes('"tool_use"') && !line.includes('"usage"') && !line.includes('<bash-input>')) continue
     let d
     try {
       d = JSON.parse(line)
     } catch {
       continue
     }
+    // 사용자가 직접 타이핑한 bash-input 수집. subagent 전사는 제외하고 main 세션만 센다.
+    if (!isSubagentFile && d.type === 'user' && line.includes('<bash-input>')) {
+      for (const m of line.matchAll(/<bash-input>(.*?)<\/bash-input>/g)) {
+        const cmd = normalizeCommand(m[1])
+        if (!cmd) continue
+        const existing = bashInputs.get(cmd)
+        if (existing) {
+          existing.count++
+          if (d.timestamp && d.timestamp > existing.lastTs) existing.lastTs = d.timestamp
+        } else {
+          bashInputs.set(cmd, { command: cmd, count: 1, sessions: 1, lastTs: d.timestamp ?? null, agentAlsoRan: false })
+        }
+      }
+    }
+
     if (d.type !== 'assistant') continue
 
     for (const c of d.message?.content ?? []) {
@@ -466,6 +487,10 @@ export function extractFile(file) {
       } else if (c.name?.startsWith('mcp__')) {
         // 노드는 도구 단위가 아니라 서버 단위다. `mcp__<서버>__<도구>` 에서 서버만 남긴다.
         calls.push({ id: c.id, kind: 'mcp', name: c.name.slice('mcp__'.length).split('__')[0], ts: d.timestamp ?? null })
+      } else if (c.name === 'Bash') {
+        // 사용자가 타이핑한 명령과 같은 명령을 에이전트가 실행했는지 나중에 비교한다.
+        const cmd = normalizeCommand(c.input?.command)
+        if (cmd) assistantBashCommands.add(cmd)
       }
     }
     // 함정 C. `<synthetic>` 줄은 API 호출이 아니다.
@@ -490,7 +515,20 @@ export function extractFile(file) {
   // 캐시에 담기는 모양이다. [message.id 또는 null, in, out, cacheRead, cacheCreate].
   // 실측(2026-09-13): 전 프로젝트에서 항목 36,354개, 전사 캐시 파일이 870KB 에서 2.78MB 로
   // 는다(×3.2). 합 넷을 항목 36,354개로 바꾼 값이고, 이 정도면 담아둘 만하다.
-  return { dispatch, status, calls, usage: [...[...usage].map(([id, r]) => [id, ...r]), ...loose.map((r) => [null, ...r])] }
+  for (const row of bashInputs.values()) {
+    row.agentAlsoRan = assistantBashCommands.has(row.command)
+  }
+  return {
+    dispatch,
+    status,
+    calls,
+    usage: [...[...usage].map(([id, r]) => [id, ...r]), ...loose.map((r) => [null, ...r])],
+    bashInputs: [...bashInputs.values()],
+  }
+}
+
+function normalizeCommand(s) {
+  return s.trim().replace(/\s+/g, ' ')
 }
 
 export function transcriptPass(root = ROOT, { cache = true, scanner = null } = {}) {

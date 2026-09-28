@@ -103,7 +103,7 @@ fs.appendFileSync(
 )
 
 process.env.HARNESS_BRO_ROOT = root
-const { delegations, sessionFiles, withDispatch, sessions, transcriptPass } = await import('../src/scan.mjs')
+const { delegations, sessionFiles, withDispatch, sessions, transcriptPass, extractFile } = await import('../src/scan.mjs')
 const { measure, observe, hookRows } = await import('../src/report.mjs')
 const rows = delegations(root)
 const joined = withDispatch(rows, root)
@@ -400,4 +400,41 @@ test('위임 행에 서브에이전트 토큰이 붙는다', () => {
   const r = joined.find((x) => x.agentId === 'agent-x')
   assert.equal(r.dispatchId, 'msg_P')
   assert.deepEqual(r.tokens, { in: 10, out: 2, cacheRead: 5, cacheCreate: 1, turns: 0, cacheMissTurns: 0 })
+})
+
+test('bash-input: 사용자가 타이핑한 명령을 수집하고 에이전트가 같은 명령을 실행했는지 표시한다', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-bro-bash-'))
+  const file = path.join(dir, 'session.jsonl')
+  const lines = []
+  for (let i = 0; i < 7; i++) {
+    lines.push(
+      JSON.stringify({
+        type: 'user',
+        timestamp: `2026-09-28T00:0${i}:00Z`,
+        message: { content: [{ type: 'text', text: '<bash-input>npm run desktop</bash-input>' }] },
+      }),
+    )
+  }
+  // 같은 명령을 에이전트가 Bash 도구로 실행했다
+  lines.push(
+    JSON.stringify({
+      type: 'assistant',
+      timestamp: '2026-09-28T00:10:00Z',
+      message: {
+        id: 'msg_bash',
+        content: [{ type: 'tool_use', id: 'toolu_bash', name: 'Bash', input: { command: 'npm run desktop' } }],
+      },
+    }),
+  )
+  fs.writeFileSync(file, lines.join('\n') + '\n')
+
+  const result = extractFile(file)
+  assert.equal(result.bashInputs.length, 1)
+  assert.deepEqual(result.bashInputs[0], {
+    command: 'npm run desktop',
+    count: 7,
+    sessions: 1,
+    lastTs: '2026-09-28T00:06:00Z',
+    agentAlsoRan: true,
+  })
 })
