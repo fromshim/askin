@@ -672,7 +672,8 @@ async function main() {
       for (const card of cardList) {
         console.log(`  · ${card.id}  ${card.title}`)
       }
-      console.log()
+      // 빈 줄은 뒤에 갈래가 올 때만 긋는다 — 마지막 줄 뒤에 빈 줄을 남기지 않는다.
+      if (p.total > 0) console.log()
     }
 
     if (p.total > 0) {
@@ -681,11 +682,11 @@ async function main() {
           ? `고칠 것 ${p.total}건. 파일이 서로 겹쳐서 한 갈래로 묶었다.\n`
           : `고칠 것 ${p.total}건을 ${p.lanes.length}갈래로 갈랐다. 파일이 안 겹치니 동시에 돌려도 된다.\n`,
       )
-      for (const lane of p.lanes) {
+      p.lanes.forEach((lane, i) => {
+        if (i > 0) console.log()
         console.log('─'.repeat(72))
         console.log(lane.prompt)
-        console.log()
-      }
+      })
     }
     return
   }
