@@ -29,3 +29,7 @@ mac:
         - arm64
   identity: null
   category: public.app-category.developer-tools
+  # "터미널에서 로그인" 버튼이 osascript 로 Terminal 에 로그인 명령을 연다(src/auth.mjs
+  # openInTerminal). macOS 가 처음 한 번 자동화 권한을 묻는데, 그때 보일 이유 문구다.
+  extendInfo:
+    NSAppleEventsUsageDescription: Claude Code·Codex CLI 로그인 명령을 터미널에서 열기 위해 Terminal 을 제어합니다.

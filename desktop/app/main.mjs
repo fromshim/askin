@@ -24,6 +24,11 @@ import {
   createConsent, sendWithConsent, createReloginNotice, createSecretStore, keyEnv,
 } from '../../src/auth.mjs'
 import { listProjectPaths, addProjectPath, removeProjectPath } from './projects.mjs'
+import { resolvedPath } from './shell-path.mjs'
+
+// Finder·Dock 으로 뜨면 PATH 에 claude·codex 가 없다. 자식 프로세스를 띄우기 전에 한 번 고친다
+// (desktop/app/shell-path.mjs).
+process.env.PATH = resolvedPath()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
