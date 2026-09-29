@@ -1,4 +1,4 @@
-# askin 을 macOS 앱(.app/.dmg/.zip)으로 묶는 설정. 서명·노터라이즈는 안 한다(identity: null).
+# askin 을 macOS 앱(.app/.dmg/.zip)으로 묶는 설정. ad-hoc 서명만 하고 노터라이즈는 안 한다(mac.identity 참고).
 #
 # files 는 최소만 담는다:
 # - desktop/app/**            메인 프로세스·렌더러·preload
@@ -19,6 +19,7 @@ files:
   - package.json
   - node_modules/**/*
 asar: true
+afterPack: tools/adhoc-sign.cjs
 mac:
   target:
     - target: dmg
@@ -27,7 +28,12 @@ mac:
     - target: zip
       arch:
         - arm64
+  # electron-builder 자체 서명은 건너뛰고(identity: null), afterPack 훅(tools/adhoc-sign.cjs)이
+  # 번들 전체를 ad-hoc 으로 봉인한다. 서명을 아예 안 하면 인터넷에서 받은 앱을 macOS 가
+  # "손상되어서 열 수 없다"고 한다 — 실측 2026-09-29, v0.2.0. 노터라이즈는 안 한다.
+  # ad-hoc 은 팀 ID 가 없어 hardened runtime 의 라이브러리 검증을 못 통과하니 끈다.
   identity: null
+  hardenedRuntime: false
   category: public.app-category.developer-tools
   # "터미널에서 로그인" 버튼이 osascript 로 Terminal 에 로그인 명령을 연다(src/auth.mjs
   # openInTerminal). macOS 가 처음 한 번 자동화 권한을 묻는데, 그때 보일 이유 문구다.
