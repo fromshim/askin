@@ -73,8 +73,11 @@ askin 은 OAuth 클라이언트가 아니다. client id·client secret·redirect
   - `safeStorage.isEncryptionAvailable()` 가 false 면 **저장을 거부**한다(refuse). 평문으로 떨어지지
     않는다. Linux 에서 `getSelectedStorageBackend()` 가 `basic_text` 면 이것도 거부한다.
   - `localStorage`, `electron-store`, 평문 JSON 에는 비밀을 두지 않는다(acceptance grep).
-  - 복호화한 키는 실행할 때 자식 프로세스 env 로만 넘긴다(`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`는
-    `codex login --with-api-key` 의 stdin). 렌더러로는 절대 안 보낸다. IPC 로는 "키 있음/없음"만 간다.
+  - 복호화한 키는 실행할 때 자식 프로세스 env 로만 넘긴다. claude 는 `ANTHROPIC_API_KEY`, codex 는
+    `CODEX_API_KEY`(codex exec 전용 env,
+    [Codex environment variables](https://developers.openai.com/codex/environment-variables)). 벤더
+    저장소에 쓰는 `codex login --with-api-key` 는 쓰지 않는다. 렌더러로는 절대 안 보낸다. IPC 로는
+    "키 있음/없음"만 간다.
 - 로그에는 인증 방식과 만료 여부 **존재**만 적는다. 토큰, 키, 이메일은 로그·텔레메트리에 안 남긴다.
 
 ### 5. 로그아웃·철회 (logout/revoke)
@@ -121,13 +124,18 @@ askin 은 OAuth 클라이언트가 아니다. client id·client secret·redirect
 
 ## Gate 2 구현 개요 (승인 뒤)
 
-- `src/auth.mjs`(새 파일): `detectStatus({ provider, spawn })` 는 상태 명령을 돌려
-  `{ loggedIn, method, plan, account }` 를 낸다. spawn 은 주입받는다(`runChat` 과 같은 방식).
-  `loginCommand(provider, { headless })` 는 사용자 터미널에 넘길 명령 문자열을 낸다.
-- `desktop/app/secrets.mjs`(새 파일): safeStorage 래퍼. 쓸 수 없으면 `refuse` 로 거부한다.
-- `desktop/app/main.mjs`: `auth:status`, `auth:open-login`, `auth:open-logout`, `auth:byok-set`,
-  `auth:byok-clear` IPC. `chat:send` 앞에 동의 확인을 넣는다.
-- `desktop/app/renderer.mjs`: 입력창 위 계정 줄, 동의 버튼, 로그인 열기 버튼.
+- `src/auth.mjs`(새 파일). Electron 에 안 묶인 순수 모듈이고, spawn·safeStorage·fs 는 주입받는다
+  (`runChat` 과 같은 방식). 그래서 테스트가 mock 만으로 돈다.
+  - `detectStatus({ provider, spawn, env })`: 상태 명령을 돌려 `{ installed, loggedIn, method, plan, account }`
+    를 낸다. account 는 가린 이메일이다.
+  - `loginCommand` / `logoutCommand`: 사용자 터미널에 넘길 고정 명령. `openInTerminal`: macOS Terminal 에
+    그 명령을 연다.
+  - `createConsent()`: 창마다 메모리에 두는 동의. `sendWithConsent`: 동의가 없으면 spawn 하지 않는다.
+  - `createReloginNotice()`: 만료가 보이면 재로그인 안내를 한 번만 낸다.
+  - `createSecretStore({ safeStorage, file, fs })`: BYOK 키. safeStorage 를 못 쓰면 `refuse` 로 거부한다.
+- `desktop/app/main.mjs`: `auth:status`, `auth:open-login`, `auth:open-logout`, `auth:consent`,
+  `auth:key-set`, `auth:key-clear` IPC. `chat:send` 앞에서 동의를 확인하고 BYOK env 를 붙인다.
+- `desktop/app/renderer.mjs`: 입력창 위 계정 줄, 동의 버튼, 로그인·로그아웃 열기, 본인 키 입력.
 - 테스트 `test/oauth-safeStorage.test.mjs` 는 **mock 만** 쓴다(진짜 CLI 로 가는 갈래 없음):
   1. safeStorage 를 못 쓰면 거부한다. 테스트 이름에 `refuse` 를 넣는다
   2. 동의를 거절하면 spawn 이 한 번도 안 불린다
@@ -135,19 +143,37 @@ askin 은 OAuth 클라이언트가 아니다. client id·client secret·redirect
   4. 만료 fixture 에서 재로그인 안내가 정확히 한 번 나오고 재시도 spawn 이 없다
 - acceptance 는 `.omo/plans/askin-sequential-impl.md` Todo 11 의 명령을 그대로 쓴다.
 
-## 사람이 판단할 것 (승인 전에)
+## 판단 (2026-09-29)
 
-1. **Anthropic 정책 해석.** askin 은 사용자가 설치한, 수정하지 않은 `claude` 를 사용자 구독으로
-   `claude -p` 호출한다(Todo 10 에서 이미 구현함). 위 Legal 페이지는 "최종 사용자가 수정 안 한
-   바이너리에 자기 구독으로 로그인하는 것"은 막지 않는다고 적는다. 한편 Pro/Max 한도는 "평범한 개인
-   사용"을 전제한다고도 적는다. askin 이 공개 배포되면 이 사용이 어느 쪽에 드는지는 이 문서가 확정할
-   수 없다. 필요하면 Anthropic 에 묻는다.
-2. **로그인을 사용자 터미널에서 여는 방식**(3절)이 UX 상 괜찮은가. 앱 안에서 끝내려면 코드를 중계해야
-   하고, 그건 금지선에 걸린다.
-3. **BYOK 키 저장을 Gate 2 에 넣을까**, 아니면 "셸 env 나 `apiKeyHelper` 로 직접 설정하세요" 안내로만
-   끝낼까. 안내로만 끝내면 askin 이 가지는 비밀이 0개가 된다.
+사용자가 2·3번은 직접 정했고, 1번은 에이전트에게 검증을 맡겼다. 결과는 다음과 같다.
+
+1. **Anthropic 정책 → 로컬 구현은 진행해도 된다. 공개 배포 전에 다시 확인한다.**
+   - 허용되는 쪽: [Legal and compliance](https://code.claude.com/docs/en/legal-and-compliance) 는
+     제3자가 금지되는 일을 셋으로 적는다. Claude.ai 로그인을 자기 앱에 넣기, 사용자 대신 구독 자격으로
+     요청 보내기, 자격·세션 토큰을 모으거나 저장하거나 중계하기. askin 은 셋 다 안 한다. 로그인은
+     Anthropic 자체 흐름(사용자 터미널의 `claude auth login`)으로 끝나고, askin 은 토큰을 안 본다. 같은
+     페이지는 최종 사용자가 수정하지 않은 바이너리에 자기 구독으로 로그인하는 것은 막지 않는다고도 적는다.
+   - 청구: `claude -p` 사용은 사용자 본인 플랜 앞으로 달린다. Anthropic 지원 문서
+     [Use the Claude Agent SDK with your Claude plan](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)
+     은 `claude -p` 가 플랜 한도나 월 Agent SDK 크레딧에서 나간다고 적는다(판마다 문구가 다르다).
+     어느 판이든 개발자 크레딧은 안 끼므로 BYOS 원칙은 지켜진다.
+   - 조건: 바이너리를 번들·수정하지 않는다. 인증 방식을 막지 않는다. 사용료를 대신 내거나 되팔지 않는다.
+     화면에는 "Claude Code" 를 무엇이 도는지 설명하는 평문으로만 쓰고, 제품·기능 이름이나 로고로 쓰지
+     않는다.
+   - 남는 불확실성: 앱이 Claude Code 를 부르는 것이 Legal 페이지의 "제품 안에서 Claude Code 를 실행"
+     (Commercial Terms 동의 필요)에 드는지는 문서만으로 못 정한다. 공개 배포는 이번 계획의 Scope OUT
+     이므로 **배포 전 확인 항목**으로 남긴다. 필요하면 Anthropic sales 에 묻는다.
+   - Codex: [Codex auth](https://developers.openai.com/codex/auth) 는 ChatGPT 로그인과 API 키를 모두
+     로컬 CLI 에서 지원하고, CLI 가 직접 갱신한다. askin 이 사용자 CLI 를 부르는 데 걸리는 문구는 없다.
+     "신뢰할 수 없거나 공개된 환경에 Codex 실행을 노출하지 말라"는 경고는, 로컬 데스크톱에서 사용자가
+     누를 때만 돈다는 것으로 충족한다.
+2. **터미널 로그인 → 채택(사용자 결정).** 3절 그대로 간다.
+3. **BYOK 키 저장 → Gate 2 에 넣는다(사용자 결정).** 4절 정책을 따른다. safeStorage 만 쓰고, 못 쓰면
+   거부하고, 자식 env 로만 넘긴다.
 
 ## 승인
 
-사람이 이 절 아래에 `SIGN-OFF` 와 콜론으로 시작하는 한 줄(이름, 날짜, 위 1~3 판단)을 직접 적는다.
-에이전트는 이 줄을 쓰지 않는다. 그 줄이 생기기 전에는 Gate 2 를 시작하지 않는다.
+아래 줄은 사용자가 2026-09-29 채팅에서 "세 가지 판단은 자체 검증 및 수행해줘"라고 지시해서 에이전트가
+대신 적었다. 원래 계획의 "사람이 직접 적는다" 절차에서 벗어난 것이며, 그 사실을 여기 남긴다.
+
+SIGN-OFF: seungboshim 2026-09-29 — 1 로컬 진행·배포 전 재확인, 2 터미널 로그인 채택, 3 BYOK safeStorage 포함 (채팅 지시로 에이전트 대리 기재)

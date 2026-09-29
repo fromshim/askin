@@ -50,5 +50,12 @@ contextBridge.exposeInMainWorld('askin', {
   coachIgnore: (repoPath, cardId) => ipcRenderer.invoke('coach:ignore', repoPath, cardId),
   // 채팅 입력을 로컬 CLI(claude/codex)에 넘긴다. token 값은 절대 주고받지 않는다.
   chatSend: (prompt, provider, cwd) => ipcRenderer.invoke('chat:send', prompt, provider, cwd),
+  // 채팅 인증. 렌더러는 가린 계정 한 줄·동의 상태·"키 있음/없음"만 받는다. 키는 넣기만 하고 못 읽는다.
+  authStatus: (provider) => ipcRenderer.invoke('auth:status', provider),
+  authConsent: (provider, accept) => ipcRenderer.invoke('auth:consent', provider, accept),
+  authOpenLogin: (provider, opts) => ipcRenderer.invoke('auth:open-login', provider, opts),
+  authOpenLogout: (provider) => ipcRenderer.invoke('auth:open-logout', provider),
+  authKeySet: (provider, key) => ipcRenderer.invoke('auth:key-set', provider, key),
+  authKeyClear: (provider) => ipcRenderer.invoke('auth:key-clear', provider),
   protoCss: extractPrototypeCss(),
 })

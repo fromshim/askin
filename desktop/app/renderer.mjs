@@ -73,6 +73,12 @@ const chatProvider = document.getElementById('ask-provider')
 const chatInput = document.getElementById('ask-chat-input')
 const chatSend = document.getElementById('ask-send')
 const chatLive = document.getElementById('ask-live')
+const authLine = document.getElementById('ask-auth-line')
+const authActions = document.getElementById('ask-auth-actions')
+const keyInput = document.getElementById('ask-key-input')
+const keySave = document.getElementById('ask-key-save')
+const keyClear = document.getElementById('ask-key-clear')
+const keyNote = document.getElementById('ask-key-note')
 
 const PROJECT_MIN_SIZE = 12 // desktop/design-concept.md: 호출 수와 무관하게 최소 크기를 보장한다
 const sizeFor = (calls) => 4 + Math.sqrt(calls) * 1.6
@@ -1337,29 +1343,147 @@ function setSendDisabled(disabled) {
   chatInput.disabled = disabled
 }
 
+// ---------- 채팅 인증(BYOS) ----------
+// main 이 CLI 에 로그인 상태를 묻고, 가린 계정 한 줄과 동의 상태만 준다. 키·토큰은 여기 안 온다.
+// 동의가 없으면 main 도 CLI 를 안 띄운다 — 여기 확인은 화면을 먼저 맞추려는 것일 뿐이다.
+let authState = null
+let pendingSend = null // 동의 전에 누른 전송. 동의하면 그대로 보낸다.
+
+function authButton(label, onClick, { primary = false } = {}) {
+  const b = document.createElement('button')
+  b.type = 'button'
+  b.className = `ask-auth-btn${primary ? ' is-primary' : ''}`
+  b.textContent = label
+  b.addEventListener('click', async () => {
+    b.disabled = true
+    try { await onClick() } catch (err) { showAuthError(err) } finally { b.disabled = false }
+  })
+  return b
+}
+
+function cleanIpcError(err) {
+  // ipcRenderer.invoke 가 붙이는 "Error invoking remote method 'x': Error: " 는 떼고 보인다.
+  return String(err?.message ?? err).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
+}
+
+function showAuthError(err) {
+  authLine.textContent = cleanIpcError(err)
+}
+
+function renderAuth(st) {
+  authState = st
+  if (!st) return
+  authLine.textContent = st.line
+  const provider = st.provider
+  const buttons = []
+  if (!st.installed) {
+    buttons.push(authButton('다시 확인', refreshAuth))
+  } else if (!st.loggedIn) {
+    buttons.push(authButton('터미널에서 로그인', () => openLogin(provider, false), { primary: true }))
+    buttons.push(authButton('브라우저 없이', () => openLogin(provider, true)))
+    buttons.push(authButton('다시 확인', refreshAuth))
+  } else if (st.consent === 'granted') {
+    if (!st.viaKey) buttons.push(authButton('로그아웃', () => window.askin.authOpenLogout(provider).then(refreshAuth)))
+  } else {
+    buttons.push(authButton('이 계정으로 실행', () => decideConsent(true), { primary: true }))
+    if (st.consent !== 'declined') buttons.push(authButton('안 함', () => decideConsent(false)))
+  }
+  authActions.replaceChildren(...buttons)
+  if (st.consent === 'declined') authLine.textContent = `${st.line} · 실행 안 함으로 뒀어요`
+
+  keyClear.disabled = !st.hasKey
+  keySave.disabled = !st.keyStorable
+  keyNote.classList.remove('is-error')
+  keyNote.textContent = !st.keyStorable
+    ? '이 기기에서는 키를 안전하게 암호화할 수 없어 저장하지 않아요'
+    : st.hasKey ? '저장된 키가 있어요. 이 도구는 구독 대신 이 키로 실행돼요' : '키는 암호화해서 이 기기에만 둬요'
+}
+
+async function refreshAuth() {
+  const provider = chatProvider.value
+  authLine.textContent = '계정을 확인하는 중이에요'
+  authActions.replaceChildren()
+  try {
+    const st = await window.askin.authStatus(provider)
+    if (chatProvider.value === provider) renderAuth(st)
+  } catch (err) {
+    showAuthError(err)
+  }
+}
+
+async function openLogin(provider, headless) {
+  await window.askin.authOpenLogin(provider, { headless })
+  authLine.textContent = '터미널에서 로그인을 마친 뒤 "다시 확인"을 눌러 주세요'
+}
+
+async function decideConsent(accept) {
+  const st = await window.askin.authConsent(chatProvider.value, accept)
+  renderAuth(st)
+  if (accept && pendingSend) {
+    const p = pendingSend
+    pendingSend = null
+    await runInChat(p.chatId, p.text)
+  } else if (!accept && pendingSend) {
+    addMessage(pendingSend.chatId, 'system', '이 계정으로는 실행하지 않았어요')
+    pendingSend = null
+  }
+}
+
+keySave.addEventListener('click', async () => {
+  const key = keyInput.value
+  keyInput.value = '' // 입력칸에 오래 남기지 않는다
+  try {
+    renderAuth(await window.askin.authKeySet(chatProvider.value, key))
+  } catch (err) {
+    keyNote.classList.add('is-error')
+    keyNote.textContent = cleanIpcError(err).replace(/^refuse: /, '')
+  }
+})
+keyClear.addEventListener('click', async () => {
+  try { renderAuth(await window.askin.authKeyClear(chatProvider.value)) } catch (err) { showAuthError(err) }
+})
+chatProvider.addEventListener('change', () => { pendingSend = null; refreshAuth() })
+
 // 입력창과 카드 버튼이 같은 길로 CLI 를 부른다. 0 이 아닌 종료 코드와 실행 실패(CLI 없음)
-// 둘 다 오류 말풍선으로 남긴다 — 조용히 버리지 않는다.
+// 둘 다 오류 말풍선으로 남긴다 — 조용히 버리지 않는다. 로그인·동의가 없으면 CLI 를 안 띄우고
+// 보낼 내용을 잡아 뒀다가 동의하면 보낸다.
 let chatBusy = false
 async function runInChat(chatId, text) {
   if (chatBusy) return
-  chatBusy = true
   const provider = chatProvider.value
   const name = PROVIDER_LABEL[provider] ?? provider
+  if (authState?.provider === provider && authState.loggedIn && authState.consent !== 'granted') {
+    pendingSend = { chatId, text }
+    if (activeChatId !== chatId) switchChat(chatId)
+    addMessage(chatId, 'system', `${authState.line} — 아래에서 "이 계정으로 실행"을 누르면 보내요`)
+    return
+  }
+  chatBusy = true
   addMessage(chatId, 'user', text)
   setSendDisabled(true)
   chatLive.textContent = `${name} 의 답을 기다리는 중이에요`
   try {
     const res = await window.askin.chatSend(text, provider, currentPath)
-    if (!res.ok) {
+    if (res.status) renderAuth(res.status)
+    if (res.needsLogin) {
+      addMessage(chatId, 'system', `${res.status?.line ?? `${name} 에 로그인돼 있지 않아요`} — 아래에서 로그인한 뒤 다시 보내 주세요`)
+    } else if (res.needsConsent) {
+      pendingSend = { chatId, text }
+      addMessage(chatId, 'system', '아래에서 "이 계정으로 실행"을 누르면 보내요')
+    } else if (res.declined) {
+      addMessage(chatId, 'system', '이 계정으로는 실행하지 않기로 했어요')
+    } else if (!res.ok) {
       const why = res.signal ? `신호 ${res.signal}` : `종료 코드 ${res.code}`
       addMessage(chatId, 'agent', `${name} 가 실패했어요 (${why}).\n${res.stderr || res.stdout || '(출력 없음)'}`, { error: true, provider: name })
     } else {
       addMessage(chatId, 'agent', res.stdout || res.stderr || '(빈 응답)', { provider: name })
     }
+    if (res.relogin) {
+      addMessage(chatId, 'system', `${res.relogin.message} (${res.relogin.command})`)
+      refreshAuth()
+    }
   } catch (err) {
-    // ipcRenderer.invoke 가 붙이는 "Error invoking remote method 'chat:send': Error: " 는 떼고 보인다.
-    const msg = String(err?.message ?? err).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
-    addMessage(chatId, 'agent', msg, { error: true, provider: name })
+    addMessage(chatId, 'agent', cleanIpcError(err), { error: true, provider: name })
   } finally {
     chatBusy = false
     setSendDisabled(false)
@@ -1392,6 +1516,7 @@ chatChoiceCurrent.addEventListener('click', () => {
 })
 chatNewBtn.addEventListener('click', () => { if (!chatBusy) createChat('새 대화') })
 ensureChat() // index.html 의 정적 탭을 chats 배열이 그린 탭으로 바꾼다
+refreshAuth()
 chatSend.addEventListener('click', sendChat)
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {

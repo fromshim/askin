@@ -468,7 +468,7 @@ export function handoff(card, report, { repo } = {}) {
 // 프롬프트에 덧붙인다 — 파이프를 열어둔 채로 두면 영원히 기다린다(“never a hang” 계약).
 // codex exec 는 PROMPT 자리에 '-' 를 주면 지시문을 stdin 에서 읽는다(codex exec --help).
 // 긴 지시서를 argv 대신 stdin 으로 넘겨 ps 에 지시서 전문이 안 보이게 한다.
-export function runChat({ provider, prompt, cwd, spawn = defaultSpawn }) {
+export function runChat({ provider, prompt, cwd, env, spawn = defaultSpawn }) {
   const binary = provider
   let argv
   let stdinText = ''
@@ -482,7 +482,8 @@ export function runChat({ provider, prompt, cwd, spawn = defaultSpawn }) {
   }
 
   return new Promise((resolve, reject) => {
-    const child = spawn(binary, argv, { cwd, shell: false, stdio: ['pipe', 'pipe', 'pipe'] })
+    // env 를 안 주면 부모 env 를 그대로 물려준다(spawn 기본값). BYOK 키는 main 이 이 자리로만 넣는다.
+    const child = spawn(binary, argv, { cwd, env, shell: false, stdio: ['pipe', 'pipe', 'pipe'] })
     let stdout = ''
     let stderr = ''
 

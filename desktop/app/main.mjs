@@ -7,7 +7,7 @@
 // 읽는다 — IPC 일곱으로만 오간다(projects:list · projects:add · projects:remove · graph:load ·
 // report:load · coach:handoff · coach:ignore).
 
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, safeStorage } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,7 +18,11 @@ import { harnessDocs, agentDefs, skillIndex } from '../../src/refs.mjs'
 import { buildReport } from '../../src/report.mjs'
 import { findings, counts, KIND_NAMES } from '../../src/fix.mjs'
 import { formatValue } from '../../src/axes.mjs'
-import { cards, inventory, handoff, chatPrompt, loadIgnored, saveIgnored, runChat } from '../../src/coach.mjs'
+import { cards, inventory, handoff, chatPrompt, loadIgnored, saveIgnored } from '../../src/coach.mjs'
+import {
+  detectStatus, effectiveStatus, accountKey, statusLine, loginCommand, logoutCommand, openInTerminal,
+  createConsent, sendWithConsent, createReloginNotice, createSecretStore, keyEnv,
+} from '../../src/auth.mjs'
 import { listProjectPaths, addProjectPath, removeProjectPath } from './projects.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -454,10 +458,65 @@ ipcMain.handle('coach:ignore', (event, repoPath, cardId) => {
   saveIgnored(ids) // src/coach.mjs 의 saveIgnored 는 값을 안 돌려준다. 쓴 목록을 직접 낸다.
   return ids
 })
-// 채팅 메시지를 로컬 CLI 에 넘긴다. token 값은 주고받지 않는다.
-ipcMain.handle('chat:send', (event, prompt, provider, cwd) => {
+// ── 채팅 인증(BYOS, docs/_inbox/oauth-byos-plan.md) ────────────────────
+// 인증은 사용자가 설치한 claude·codex CLI 가 한다. main 은 상태를 묻고, 계정을 보여 주고, 동의를
+// 받고, 사용자가 askin 에 넣은 본인 키만 safeStorage 로 둔다. 렌더러로는 키도 토큰도 안 간다 —
+// 가린 계정 한 줄과 "키 있음/없음"만 간다. 동의는 이 프로세스 메모리에만 있다.
+const consent = createConsent()
+const relogin = createReloginNotice()
+let secretStore = null
+const secrets = () => (secretStore ??= createSecretStore({ safeStorage, file: path.join(app.getPath('userData'), 'askin-keys.enc.json') }))
+
+async function authStatus(provider) {
+  const hasKey = secrets().has(provider)
+  const st = effectiveStatus(await detectStatus({ provider }), { hasKey })
+  if (st.loggedIn) relogin.reset(provider)
+  return { ...st, hasKey, keyStorable: secrets().usable(), line: statusLine(st), consent: consent.get(provider, accountKey(st)), key: accountKey(st) }
+}
+
+function publicStatus(st) {
+  const { key, ...rest } = st
+  return rest
+}
+
+ipcMain.handle('auth:status', async (event, provider) => publicStatus(await authStatus(provider)))
+// accept=true 면 지금 계정으로 실행해도 된다는 동의, false 면 거절. 계정이 바뀌면 다시 묻는다.
+ipcMain.handle('auth:consent', async (event, provider, accept) => {
+  const st = await authStatus(provider)
+  if (accept) consent.grant(provider, st.key)
+  else consent.decline(provider, st.key)
+  return publicStatus({ ...st, consent: accept ? 'granted' : 'declined' })
+})
+ipcMain.handle('auth:open-login', async (event, provider, { headless = false } = {}) => {
+  relogin.reset(provider)
+  return openInTerminal(loginCommand(provider, { headless }))
+})
+ipcMain.handle('auth:open-logout', async (event, provider) => {
+  consent.revoke(provider)
+  return openInTerminal(logoutCommand(provider))
+})
+// 본인 API 키. 못 쓰면 'refuse:' 로 시작하는 오류가 그대로 렌더러에 간다(평문으로 안 떨어진다).
+ipcMain.handle('auth:key-set', async (event, provider, key) => {
+  secrets().set(provider, key)
+  consent.revoke(provider)
+  return publicStatus(await authStatus(provider))
+})
+ipcMain.handle('auth:key-clear', async (event, provider) => {
+  secrets().clear(provider)
+  consent.revoke(provider)
+  return publicStatus(await authStatus(provider))
+})
+
+// 채팅 메시지를 로컬 CLI 에 넘긴다. 로그인 → 동의 순으로 확인하고, 동의가 없으면 띄우지 않는다.
+// 만료 문구가 보이면 재로그인 안내를 한 번 붙인다. askin 은 실패한 요청을 다시 보내지 않는다.
+ipcMain.handle('chat:send', async (event, prompt, provider, cwd) => {
   if (!prompt || !provider) throw new Error('chat:send 는 prompt 와 provider 가 있어야 한다')
-  return runChat({ provider, prompt, cwd })
+  const st = await authStatus(provider)
+  if (!st.installed || !st.loggedIn) return { ok: false, needsLogin: true, status: publicStatus(st), stdout: '', stderr: '' }
+  const key = st.viaKey ? secrets().get(provider) : null
+  if (st.viaKey && !key) return { ok: false, needsLogin: true, status: publicStatus(st), stdout: '', stderr: '저장한 키를 풀지 못했어요' }
+  const res = await sendWithConsent({ provider, prompt, cwd, status: st, consent, env: key ? keyEnv(provider, key) : undefined })
+  return { ...res, status: publicStatus(st), relogin: relogin.check(provider, res) }
 })
 
 app.whenReady().then(() => {

@@ -10,10 +10,28 @@
 #   MOCK_EXIT=<n>        stderr 에 실패 문구를 쓰고 n 으로 끝낸다
 #   MOCK_READ_STDIN=1    claude 로 불려도 stdin 을 EOF 까지 읽는다(진짜 claude -p 처럼).
 #                        호출자가 stdin 을 안 닫으면 여기서 멈춘다 — 행 방지 검증용
+#   MOCK_LOGGED_OUT=1    상태 질문에 로그인 안 됨으로 답한다
 set -u
 name="$(basename "$0")"
 log="${MOCK_ARGV_LOG:-$(cd "$(dirname "$0")/.." && pwd)/task-10-argv.log}"
 printf '%s %s\n' "$name" "$*" >> "$log"
+
+# 로그인 상태 질문(src/auth.mjs detectStatus). 가짜 계정으로 로그인돼 있다고 답한다.
+# MOCK_LOGGED_OUT=1 이면 로그인 안 됨으로 답한다.
+if [ "$name" = "claude" ] && [ "${1:-}" = "auth" ] && [ "${2:-}" = "status" ]; then
+  if [ "${MOCK_LOGGED_OUT:-}" = "1" ]; then
+    printf '{"loggedIn":false,"authMethod":"none"}\n'; exit 1
+  fi
+  printf '{"loggedIn":true,"authMethod":"claude.ai","subscriptionType":"max","email":"mock@example.com"}\n'
+  exit 0
+fi
+if [ "$name" = "codex" ] && [ "${1:-}" = "login" ] && [ "${2:-}" = "status" ]; then
+  if [ "${MOCK_LOGGED_OUT:-}" = "1" ]; then
+    printf 'Not logged in\n' >&2; exit 1
+  fi
+  printf 'Logged in using ChatGPT\n'
+  exit 0
+fi
 
 stdin_text=""
 if [ "$name" = "codex" ] || [ "${MOCK_READ_STDIN:-}" = "1" ]; then

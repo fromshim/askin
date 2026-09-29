@@ -83,6 +83,28 @@
   #askin-desktop-v1 .ask-chat-messages::-webkit-scrollbar { display: none; width: 0; height: 0; }
   #askin-desktop-v1 .ask-chat-messages .ask-message { min-width: 0; overflow-wrap: anywhere; }
   #askin-desktop-v1 .ask-message pre { max-width: 100%; overflow-x: auto; }
+  /* 채팅 인증 줄(docs/_inbox/oauth-byos-plan.md 7절). 어느 계정으로 도는지 한 줄, 그 옆에 지금 할 수
+     있는 일만 버튼으로 둔다. */
+  #askin-desktop-v1 .ask-auth { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 8px; font-size: 11px; color: var(--ask-dim); }
+  #askin-desktop-v1 .ask-auth-line { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+  #askin-desktop-v1 .ask-auth-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  #askin-desktop-v1 .ask-auth-btn {
+    min-height: 24px; padding: 0 8px; border: 1px solid var(--ask-line); border-radius: 6px;
+    background: var(--ask-panel); color: var(--ask-ink); font-size: 11px;
+    transition: background-color 120ms cubic-bezier(.2, 0, 0, 1), border-color 120ms cubic-bezier(.2, 0, 0, 1);
+  }
+  #askin-desktop-v1 .ask-auth-btn:hover { background: var(--ask-purple-soft); border-color: var(--ask-purple); }
+  #askin-desktop-v1 .ask-auth-btn.is-primary { border-color: var(--ask-purple); background: var(--ask-purple); color: #fff; }
+  #askin-desktop-v1 .ask-auth-btn:disabled { cursor: default; opacity: .55; }
+  #askin-desktop-v1 .ask-auth-key { margin-top: 6px; font-size: 11px; color: var(--ask-dim); }
+  #askin-desktop-v1 .ask-auth-key summary { cursor: pointer; width: fit-content; }
+  #askin-desktop-v1 .ask-auth-key-row { display: flex; gap: 6px; margin-top: 6px; }
+  #askin-desktop-v1 .ask-key-input {
+    flex: 1; min-width: 0; min-height: 24px; padding: 0 8px; border: 1px solid var(--ask-line); border-radius: 6px;
+    background: var(--ask-panel-raised); color: var(--ask-ink); font: 11px var(--ask-mono);
+  }
+  #askin-desktop-v1 .ask-auth-note { margin-top: 4px; color: var(--ask-faint); }
+  #askin-desktop-v1 .ask-auth-note.is-error { color: var(--ask-danger); }
   /* 스크롤은 유지하고 막대만 감춘다. 다른 패널은 지금 세로 스크롤이 안 생겨(overflow 선언이
      없다) 이 규칙의 영향을 안 받는다. Electron 은 Chromium 이라 ::-webkit-scrollbar 가 실제로
      듣는다 — scrollbar-width 는 다른 엔진을 위한 보험이다. */
@@ -415,6 +437,20 @@
 
       <div class="ask-chat-composer" id="ask-chat-composer">
         <div class="ask-storage-note">메시지는 이 창에만 남아요 · 토큰은 저장하지 않아요</div>
+        <div class="ask-auth" id="ask-auth" aria-live="polite">
+          <div class="ask-auth-line" id="ask-auth-line">계정을 확인하는 중이에요</div>
+          <div class="ask-auth-actions" id="ask-auth-actions"></div>
+        </div>
+        <details class="ask-auth-key" id="ask-auth-key">
+          <summary>본인 API 키로 실행</summary>
+          <div class="ask-auth-key-row">
+            <label class="ask-sr-only" for="ask-key-input">API 키</label>
+            <input class="ask-key-input" id="ask-key-input" type="password" autocomplete="off" spellcheck="false" placeholder="이 기기에 암호화해서 둬요">
+            <button class="ask-auth-btn" id="ask-key-save" type="button">저장</button>
+            <button class="ask-auth-btn" id="ask-key-clear" type="button">지우기</button>
+          </div>
+          <div class="ask-auth-note" id="ask-key-note"></div>
+        </details>
         <div class="ask-composer-box">
           <label class="ask-sr-only" for="ask-provider">도구</label>
           <select class="ask-model-select" id="ask-provider">
