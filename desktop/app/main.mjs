@@ -18,7 +18,7 @@ import { harnessDocs, agentDefs, skillIndex } from '../../src/refs.mjs'
 import { buildReport } from '../../src/report.mjs'
 import { findings, counts, KIND_NAMES } from '../../src/fix.mjs'
 import { formatValue } from '../../src/axes.mjs'
-import { cards, inventory, handoff, loadIgnored, saveIgnored } from '../../src/coach.mjs'
+import { cards, inventory, handoff, loadIgnored, saveIgnored, runChat } from '../../src/coach.mjs'
 import { listProjectPaths, addProjectPath, removeProjectPath } from './projects.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -451,6 +451,11 @@ ipcMain.handle('coach:ignore', (event, repoPath, cardId) => {
   if (!ids.includes(cardId)) ids.push(cardId)
   saveIgnored(ids) // src/coach.mjs 의 saveIgnored 는 값을 안 돌려준다. 쓴 목록을 직접 낸다.
   return ids
+})
+// 채팅 메시지를 로컬 CLI 에 넘긴다. token 값은 주고받지 않는다.
+ipcMain.handle('chat:send', (event, prompt, provider, cwd) => {
+  if (!prompt || !provider) throw new Error('chat:send 는 prompt 와 provider 가 있어야 한다')
+  return runChat({ provider, prompt, cwd })
 })
 
 app.whenReady().then(() => {

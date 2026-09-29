@@ -48,5 +48,7 @@ contextBridge.exposeInMainWorld('askin', {
   coachHandoff: (repoPath, cardId) => ipcRenderer.invoke('coach:handoff', repoPath, cardId),
   // "문제 아님" 버튼. 카드 id 를 무시 목록에 쌓고 갱신된 레포트를 다시 받으라고 렌더러가 부른다.
   coachIgnore: (repoPath, cardId) => ipcRenderer.invoke('coach:ignore', repoPath, cardId),
+  // 채팅 입력을 로컬 CLI(claude/codex)에 넘긴다. token 값은 절대 주고받지 않는다.
+  chatSend: (prompt, provider, cwd) => ipcRenderer.invoke('chat:send', prompt, provider, cwd),
   protoCss: extractPrototypeCss(),
 })

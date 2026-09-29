@@ -61,6 +61,20 @@ const sessionMeta = document.getElementById('ask-session-meta')
 const sessionEmpty = document.getElementById('ask-session-empty')
 const sessionRowsEl = document.getElementById('ask-session-rows')
 
+const chatTabs = document.getElementById('ask-chat-tabs')
+const chatActiveTab = document.getElementById('ask-active-tab')
+const chatNewBtn = document.getElementById('ask-new-chat')
+const chatBody = document.getElementById('ask-chat-body')
+const chatEmpty = document.getElementById('ask-chat-empty')
+const chatMessages = document.getElementById('ask-chat-messages')
+const chatChoices = document.getElementById('ask-chat-choices')
+const chatChoiceNew = document.getElementById('ask-choice-new')
+const chatChoiceCurrent = document.getElementById('ask-choice-current')
+const chatProvider = document.getElementById('ask-provider')
+const chatInput = document.getElementById('ask-chat-input')
+const chatSend = document.getElementById('ask-send')
+const chatLive = document.getElementById('ask-live')
+
 const PROJECT_MIN_SIZE = 12 // desktop/design-concept.md: 호출 수와 무관하게 최소 크기를 보장한다
 const sizeFor = (calls) => 4 + Math.sqrt(calls) * 1.6
 // 이 수 이하면 라벨을 전부 띄운다. 실측: 저장소 20곳의 노드 수가 중앙값 6.5, 최대 31 이고
@@ -909,8 +923,7 @@ function weakCardEl(card) {
   copyBtn.className = 'ask-secondary'
   copyBtn.type = 'button'
   copyBtn.textContent = '지시서 복사'
-  // 채팅 패널이 아직 없어서 "채팅에서 고치기" 대신 지시서를 클립보드에 담아 사용자가
-  // 직접 붙여넣게 한다(지시서 지침). 눌렀다는 걸 2초짜리 라벨 바뀜으로만 알린다.
+  // 눌렀다는 걸 2초짜리 라벨 바뀜으로만 알린다.
   copyBtn.addEventListener('click', async () => {
     const markdown = await window.askin.coachHandoff(currentPath, card.id)
     try {
@@ -927,6 +940,22 @@ function weakCardEl(card) {
     }, 2000)
   })
 
+  const chatBtn = document.createElement('button')
+  chatBtn.className = 'ask-primary'
+  chatBtn.type = 'button'
+  chatBtn.textContent = '채팅에서 고치기'
+  chatBtn.addEventListener('click', async () => {
+    chatBtn.disabled = true
+    try {
+      const markdown = await window.askin.coachHandoff(currentPath, card.id)
+      startChatFromHandoff(markdown)
+    } catch (e) {
+      console.error('핸드오프를 못 받았다', e)
+    } finally {
+      chatBtn.disabled = false
+    }
+  })
+
   const dismissBtn = document.createElement('button')
   dismissBtn.className = 'ask-quiet ask-dismiss'
   dismissBtn.type = 'button'
@@ -938,7 +967,7 @@ function weakCardEl(card) {
     renderReport(report)
   })
 
-  actions.append(copyBtn, dismissBtn)
+  actions.append(chatBtn, copyBtn, dismissBtn)
   article.append(actions)
   return article
 }
@@ -1180,6 +1209,191 @@ async function main() {
     document.title = 'askin:ready'
   }
 }
+
+// ---------- 채팅 패널 ----------
+// 메시지는 렌더러 메모리에만 있다. 메인 프로세스는 chat:send 를 받아 로컬 CLI 를 실행하고
+// stdout/stderr/argv 만 돌려준다. token 값은 절대 주고받지 않는다.
+
+const chats = []
+let activeChatId = null
+
+function ensureChat() {
+  if (!chats.length) createChat('새 대화')
+  return chats[0]
+}
+
+function createChat(name) {
+  const id = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+  chats.unshift({ id, name, messages: [] })
+  activeChatId = id
+  renderChatTabs()
+  renderChatBody()
+  return id
+}
+
+function activeChat() {
+  return chats.find((c) => c.id === activeChatId) ?? ensureChat()
+}
+
+function switchChat(id) {
+  activeChatId = id
+  renderChatTabs()
+  renderChatBody()
+}
+
+function addMessage(chatId, role, text, { error = false } = {}) {
+  const chat = chats.find((c) => c.id === chatId)
+  if (!chat) return
+  chat.messages.push({ role, text, error, ts: Date.now() })
+  if (activeChatId !== chatId) switchChat(chatId)
+  else renderChatBody()
+}
+
+function renderChatTabs() {
+  // 기존 탭 버튼 중 첫 번째(활성 탭)를 제외하고 모두 지운 뒤 새로 그린다.
+  while (chatTabs.children.length > 2) {
+    chatTabs.removeChild(chatTabs.children[1])
+  }
+  for (let i = chats.length - 1; i >= 0; i--) {
+    const chat = chats[i]
+    const btn = document.createElement('button')
+    btn.className = `ask-chat-tab${chat.id === activeChatId ? ' is-active' : ''}`
+    btn.type = 'button'
+    btn.role = 'tab'
+    btn.setAttribute('aria-selected', String(chat.id === activeChatId))
+    const span = document.createElement('span')
+    span.textContent = chat.name
+    btn.appendChild(span)
+    btn.addEventListener('click', () => switchChat(chat.id))
+    chatTabs.insertBefore(btn, chatActiveTab.nextSibling)
+  }
+  const active = activeChat()
+  chatActiveTab.querySelector('span').textContent = active.name
+  chatActiveTab.classList.toggle('is-active', active.id === activeChatId)
+  chatActiveTab.setAttribute('aria-selected', String(active.id === activeChatId))
+}
+
+function renderChatBody() {
+  const chat = activeChat()
+  const hasMessages = chat.messages.length > 0
+  chatEmpty.hidden = hasMessages
+  chatMessages.hidden = !hasMessages
+  chatChoices.hidden = !hasMessages
+  chatMessages.innerHTML = ''
+  for (const m of chat.messages) {
+    chatMessages.appendChild(messageEl(m))
+  }
+  chatMessages.scrollTop = chatMessages.scrollHeight
+}
+
+function messageEl(m) {
+  if (m.role === 'system') {
+    const div = document.createElement('div')
+    div.className = 'ask-message is-system'
+    div.textContent = m.text
+    return div
+  }
+  const row = document.createElement('div')
+  row.className = m.role === 'user' ? 'ask-message is-user' : 'ask-agent-message-row'
+  if (m.role === 'user') {
+    row.textContent = m.text
+    if (m.error) row.classList.add('is-error')
+    return row
+  }
+  const orb = document.createElement('div')
+  orb.className = 'ask-agent-orb'
+  orb.setAttribute('role', 'img')
+  orb.setAttribute('aria-label', '에이전트')
+  orb.innerHTML = '<div class="ask-orb-core"></div><div class="ask-orb-eyes"><div class="ask-eye"></div><div class="ask-eye"></div></div>'
+  const bubble = document.createElement('div')
+  bubble.className = `ask-message is-agent${m.error ? ' is-error' : ''}`
+  const label = document.createElement('small')
+  label.textContent = m.error ? '오류' : 'Claude/Codex'
+  bubble.appendChild(label)
+  const body = document.createElement('div')
+  renderMarkdownInto(body, m.text)
+  bubble.appendChild(body)
+  row.appendChild(orb)
+  row.appendChild(bubble)
+  return row
+}
+
+function renderMarkdownInto(container, text) {
+  container.innerHTML = ''
+  // 마크다운 중 코드 블록만 <pre> 로, 나머지는 텍스트 그대로 보여준다. 외부 CLI 출력을
+  // 그대로 믿을 수 없으므로 HTML 은 escape 한다.
+  const parts = text.split(/(```[\s\S]*?```)/g)
+  for (const part of parts) {
+    if (part.startsWith('```') && part.endsWith('```')) {
+      const pre = document.createElement('pre')
+      pre.textContent = part.slice(3, -3).replace(/^[a-zA-Z0-9_-]+\n/, '')
+      container.appendChild(pre)
+    } else {
+      const lines = part.split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        if (i > 0) container.appendChild(document.createElement('br'))
+        container.appendChild(document.createTextNode(lines[i]))
+      }
+    }
+  }
+}
+
+function setSendDisabled(disabled) {
+  chatSend.disabled = disabled
+  chatInput.disabled = disabled
+}
+
+async function sendChat() {
+  const text = chatInput.value.trim()
+  if (!text) return
+  const provider = chatProvider.value
+  const chat = activeChat()
+  chatInput.value = ''
+  addMessage(chat.id, 'user', text)
+  setSendDisabled(true)
+  chatLive.textContent = '답변을 기다리는 중이에요'
+  try {
+    const res = await window.askin.chatSend(text, provider, currentPath)
+    if (!res.ok) {
+      addMessage(chat.id, 'agent', `실행은 끝났지만 종료 코드가 0 이 아니에요.\n${res.stderr || res.stdout}`, { error: true })
+    } else {
+      addMessage(chat.id, 'agent', res.stdout || res.stderr || '(빈 응답)')
+    }
+  } catch (err) {
+    addMessage(chat.id, 'agent', err.message, { error: true })
+  } finally {
+    setSendDisabled(false)
+    chatLive.textContent = ''
+    chatInput.focus()
+  }
+}
+
+function startChatFromHandoff(markdown) {
+  let chatId
+  if (chatChoiceCurrent.classList.contains('is-active')) {
+    chatId = activeChat().id
+  } else {
+    chatId = createChat('고치기')
+  }
+  addMessage(chatId, 'user', markdown)
+}
+
+chatChoiceNew.addEventListener('click', () => {
+  chatChoiceNew.classList.add('is-active')
+  chatChoiceCurrent.classList.remove('is-active')
+})
+chatChoiceCurrent.addEventListener('click', () => {
+  chatChoiceCurrent.classList.add('is-active')
+  chatChoiceNew.classList.remove('is-active')
+})
+chatNewBtn.addEventListener('click', () => createChat('새 대화'))
+chatSend.addEventListener('click', sendChat)
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    sendChat()
+  }
+})
 
 window.addEventListener('error', (e) => console.error('renderer error', e.message, e.filename, e.lineno))
 window.addEventListener('unhandledrejection', (e) => console.error('renderer unhandled rejection', e.reason))

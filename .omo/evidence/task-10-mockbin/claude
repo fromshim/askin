@@ -1,0 +1,5 @@
+#!/bin/bash
+printf '%s' "$(basename "$0")" >> .omo/evidence/task-10-argv.log
+for a in "$@"; do printf ' %q' "$a" >> .omo/evidence/task-10-argv.log; done
+printf '\n' >> .omo/evidence/task-10-argv.log
+printf '# Mock Claude response\n\nFixed.\n'

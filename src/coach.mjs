@@ -15,6 +15,7 @@ import path from 'node:path'
 import os from 'node:os'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { spawn as defaultSpawn } from 'node:child_process'
 import { findings, plan, KIND_NAMES } from './fix.mjs'
 import { harnessDocs, agentDefs, skillIndex } from './refs.mjs'
 import { NO_DEFINITION } from './graph.mjs'
@@ -456,6 +457,53 @@ function ruleHandoff(card, report, repo) {
 export function handoff(card, report, { repo } = {}) {
   const scopeRepo = repo ?? report.scope.repo
   return card.tier === 'rule' ? ruleHandoff(card, report, scopeRepo) : brokenHandoff(card, report)
+}
+
+// ── runChat: 로컬 CLI 와 대화 ───────────────────────────────────────────
+
+// spawn 을 인자로 받아 테스트에서 갈아 끼울 수 있게 한다. 기본값은 node:child_process 의
+// spawn 이다. cwd 는 CLI 가 프로젝트를 읽을 기준 디렉터리다. token 값은 절대 넘기지 않는다.
+export function runChat({ provider, prompt, cwd, spawn = defaultSpawn }) {
+  const binary = provider
+  let argv
+  let writeStdin = null
+  if (provider === 'claude') {
+    argv = ['-p', prompt]
+  } else if (provider === 'codex') {
+    argv = ['exec', '-']
+    writeStdin = prompt
+  } else {
+    return Promise.reject(new Error(`지원하지 않는 provider: ${provider}`))
+  }
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(binary, argv, { cwd, shell: false })
+    let stdout = ''
+    let stderr = ''
+
+    child.stdout?.on('data', (chunk) => { stdout += chunk })
+    child.stderr?.on('data', (chunk) => { stderr += chunk })
+
+    child.on('error', (err) => {
+      if (err.code === 'ENOENT') {
+        const guidance = provider === 'claude'
+          ? 'claude CLI 를 설치해야 한다. https://code.claude.com/docs/en/authentication 참고'
+          : 'codex CLI 가 필요하다. `codex login` 으로 로그인했는지 확인필라.'
+        reject(new Error(`${binary} 를 찾을 수 없다. ${guidance}`))
+        return
+      }
+      reject(err)
+    })
+
+    child.on('close', (code) => {
+      resolve({ argv: [binary, ...argv], stdout, stderr, ok: code === 0 })
+    })
+
+    if (writeStdin != null && child.stdin) {
+      child.stdin.write(writeStdin)
+      child.stdin.end()
+    }
+  })
 }
 
 // ── 문제 아님 ──────────────────────────────────────────────────────────

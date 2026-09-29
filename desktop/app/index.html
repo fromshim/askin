@@ -52,6 +52,26 @@
   #askin-desktop-v1 .ask-sidebar,
   #askin-desktop-v1 .ask-main-panel,
   #askin-desktop-v1 .ask-chat-panel { min-height: 0; }
+  /* 채팅 패널. 프로토타입 CSS 가 기본 골격(탭·메시지·입력)을 이미 정의한다. 여기는 앱 전용
+     확장만 최소로 추가한다. */
+  #askin-desktop-v1 .ask-chat-empty {
+    display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; padding: 20px; color: var(--ask-dim); font-size: 12px; text-align: center;
+  }
+  #askin-desktop-v1 .ask-chat-empty strong { color: var(--ask-ink); font-weight: 500; }
+  #askin-desktop-v1 .ask-chat-choices { display: flex; gap: 6px; margin-bottom: 8px; }
+  #askin-desktop-v1 .ask-chat-choice {
+    flex: 1; min-height: 32px; padding: 0 8px; border: 1px solid var(--ask-line); border-radius: 8px;
+    background: var(--ask-panel); color: var(--ask-dim); font-size: 12px; transition: color 120ms cubic-bezier(.2, 0, 0, 1), background-color 120ms cubic-bezier(.2, 0, 0, 1), border-color 120ms cubic-bezier(.2, 0, 0, 1);
+  }
+  #askin-desktop-v1 .ask-chat-choice.is-active { border-color: var(--ask-purple); background: var(--ask-purple-soft); color: var(--ask-purple-ink); font-weight: 500; }
+  #askin-desktop-v1 .ask-message.is-error { background: var(--ask-danger); color: #fff; }
+  #askin-desktop-v1 .ask-message.is-system { background: transparent; color: var(--ask-faint); font-size: 11px; }
+  #askin-desktop-v1 .ask-message pre {
+    margin: 6px 0 0; padding: 8px; border-radius: 6px; background: var(--ask-panel-raised);
+    color: var(--ask-ink); font-family: var(--ask-mono); font-size: 11px; white-space: pre-wrap; word-break: break-word;
+  }
+  #askin-desktop-v1 .ask-send:disabled { cursor: default; opacity: .55; }
   /* 스크롤은 유지하고 막대만 감춘다. 다른 패널은 지금 세로 스크롤이 안 생겨(overflow 선언이
      없다) 이 규칙의 영향을 안 받는다. Electron 은 Chromium 이라 ::-webkit-scrollbar 가 실제로
      듣는다 — scrollbar-width 는 다른 엔진을 위한 보험이다. */
@@ -364,8 +384,37 @@
     </div>
 
     <aside class="ask-chat-panel" aria-label="채팅">
-      <div class="ask-chat-body">
-        <div class="ask-chat-placeholder">아직 안 만듦</div>
+      <div class="ask-chat-tabs" id="ask-chat-tabs" role="tablist" aria-label="로컬 채팅 세션">
+        <button class="ask-chat-tab is-active" id="ask-active-tab" type="button" role="tab" aria-selected="true"><span>새 대화</span></button>
+        <span class="ask-tab-spacer"></span>
+        <button class="ask-icon-button" id="ask-new-chat" type="button" aria-label="새 채팅">＋</button>
+      </div>
+
+      <div class="ask-chat-body" id="ask-chat-body">
+        <div class="ask-chat-empty" id="ask-chat-empty">
+          <strong>로컬 CLI 와 대화해요</strong>
+          <span>Claude Code 나 Codex CLI 를 써서 이 프로젝트를 고칩니다.</span>
+        </div>
+        <div class="ask-chat-messages" id="ask-chat-messages" hidden></div>
+        <div class="ask-chat-choices" id="ask-chat-choices" hidden>
+          <button class="ask-chat-choice is-active" id="ask-choice-new" type="button">새 채팅으로 시작</button>
+          <button class="ask-chat-choice" id="ask-choice-current" type="button">현재 채팅에 넣기</button>
+        </div>
+      </div>
+
+      <div class="ask-chat-composer" id="ask-chat-composer">
+        <div class="ask-storage-note">메시지는 이 창에만 남아요 · 토큰은 저장하지 않아요</div>
+        <div class="ask-composer-box">
+          <label class="ask-sr-only" for="ask-provider">도구</label>
+          <select class="ask-model-select" id="ask-provider">
+            <option value="claude">Claude Code</option>
+            <option value="codex">Codex CLI</option>
+          </select>
+          <label class="ask-sr-only" for="ask-chat-input">메시지</label>
+          <textarea class="ask-chat-input" id="ask-chat-input" rows="1" placeholder="무엇을 고치고 싶나요?"></textarea>
+          <button class="ask-send" id="ask-send" type="button" aria-label="메시지 전송">↑</button>
+        </div>
+        <div class="ask-sr-only" id="ask-live" aria-live="polite"></div>
       </div>
     </aside>
   </div>
