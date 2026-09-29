@@ -229,9 +229,9 @@
     min-height: 0; max-height: 38vh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
   }
   #askin-desktop-v1 .ask-session-body::-webkit-scrollbar { display: none; width: 0; height: 0; }
-  /* 하네스(그래프) 칸: 남는 세로 공간을 레포트보다 넉넉히 갖는다(그래프를 키우자는 요청).
-     사용자가 핸들로 높이를 정하면 --ask-graph-h 가 이 비율을 대신한다. */
-  #askin-desktop-v1 .ask-harness { display: flex; min-height: 0; flex: 3 1 0; flex-direction: column; }
+  /* 하네스(그래프) 칸: 그래프를 키운다(사용자 요청). map 최소 높이로 크기를 확보하고, 남는
+     세로 공간은 레포트와 1:1 로 나눈다. 사용자가 핸들로 정하면 --ask-graph-h 가 이긴다. */
+  #askin-desktop-v1 .ask-harness { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; }
   #askin-desktop-v1 .ask-harness-body { position: relative; display: flex; min-height: 0; flex: 1; flex-direction: column; }
   #askin-desktop-v1 #ask-harness-map {
     flex: 1 1 auto; min-height: 320px; height: var(--ask-graph-h, auto);
@@ -244,7 +244,7 @@
   #askin-desktop-v1 .ask-resize-row span { width: 3px; height: 3px; border-radius: 50%; background: var(--ask-faint); opacity: .35; transition: opacity 120ms cubic-bezier(.2,0,0,1), background-color 120ms cubic-bezier(.2,0,0,1); }
   #askin-desktop-v1 .ask-resize-row:hover span, #askin-desktop-v1 .ask-resize-row:focus-visible span, #askin-desktop-v1 .ask-resize-row.is-dragging span { opacity: .9; background: var(--ask-dim); }
   #askin-desktop-v1 .ask-resize-row:focus-visible { outline: 2px solid var(--ask-purple); outline-offset: 2px; }
-  #askin-desktop-v1 .ask-report { display: flex; min-height: 200px; flex: 2 1 0; flex-direction: column; }
+  #askin-desktop-v1 .ask-report { display: flex; min-height: 220px; flex: 1 1 auto; flex-direction: column; }
   #ask-sigma-container { position: absolute; inset: 0; }
   #ask-declared-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   .ask-report-note { margin: 10px 2px 0; color: var(--ask-faint); font-size: 12px; }
@@ -446,7 +446,6 @@
               </div>
               <span class="ask-popover-tail" aria-hidden="true"></span>
             </div>
-          </div>
         </div>
       </section>
 

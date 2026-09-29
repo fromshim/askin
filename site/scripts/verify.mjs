@@ -59,7 +59,11 @@ await plain.locator('.app-figure img').scrollIntoViewIfNeeded();
 await plain.waitForFunction(() => document.querySelector('.app-figure img').complete);
 assert.equal(await plain.locator('.app-figure img').evaluate(n=>n.complete && n.naturalWidth>0),true);
 assert.match(await plain.locator('.download-button').getAttribute('href'), /^https:\/\/github\.com\/fromshim\/askin\/releases\/download\/v\d+\.\d+\.\d+\/askin-\d+\.\d+\.\d+-arm64\.dmg$/);
+// 설치 안내는 <details> 안에 접혀 있다(JS 없이도 여닫힌다). 펼친 뒤 해제 안내와 xattr 명령을 확인한다.
+await plain.locator('.install-guide').evaluate(n => { n.open = true; });
 assert.equal(await plain.getByText('그래도 열기', {exact:false}).isVisible(),true);
+assert.equal(await plain.locator('.install-cmd code').isVisible(),true);
+assert.match(await plain.locator('.install-cmd code').textContent(), /^xattr -dr com\.apple\.quarantine \/Applications\/askin\.app$/);
 await nojs.close();
 await browser.close();
 assert.deepEqual(errors,[]);
