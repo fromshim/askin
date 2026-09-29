@@ -217,9 +217,34 @@
      그래프가 flex:1 로 남아 있으면 스크롤 컨테이너 안에서 높이가 안 정해져 찌그러진다. */
   #askin-desktop-v1 .ask-report-view.is-visible { overflow-y: auto; scrollbar-width: none; }
   #askin-desktop-v1 .ask-report-view.is-visible::-webkit-scrollbar { display: none; width: 0; height: 0; }
-  /* 내 하네스 섹션 안 그래프. 요약 띠(다섯 칸)와 같이 있어야 해서 380px 대신 240px 로 줄인다
-     (지시서: "그래프 높이 240px"). */
-  #ask-harness-map { flex: 0 0 auto; height: 240px; }
+  /* 내 하네스 섹션 안 그래프. 예전엔 요약 띠와 붙어 240px 고정이었는데, 그래프가 너무
+     좁아 노드·팝오버가 눌렸다(사용자 요청 2026-09-29). 이제 그래프 칸은 창 높이에 맞춰
+     늘어나고, 세션·그래프·레포트가 세로로 나뉜 main 패널에서 자기 몫을 갖는다. 사용자가
+     핸들로 높이를 조절하면 --ask-graph-h 가 그 값을 이긴다. */
+  #askin-desktop-v1 .ask-main-panel { display: flex; min-height: 0; flex-direction: column; }
+  /* 세션: 접히면 0, 펼치면 최대 38%까지 자라고 그 안에서 스크롤한다(예전엔 상한이 없어
+     행이 많으면 레포트를 밀어냈다 — 스크롤 안 됨 버그). */
+  #askin-desktop-v1 .ask-session { flex: 0 0 auto; }
+  #askin-desktop-v1 .ask-session:not(.is-collapsed) .ask-session-body {
+    min-height: 0; max-height: 38vh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
+  }
+  #askin-desktop-v1 .ask-session-body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  /* 하네스(그래프) 칸: 남는 세로 공간을 레포트보다 넉넉히 갖는다(그래프를 키우자는 요청).
+     사용자가 핸들로 높이를 정하면 --ask-graph-h 가 이 비율을 대신한다. */
+  #askin-desktop-v1 .ask-harness { display: flex; min-height: 0; flex: 3 1 0; flex-direction: column; }
+  #askin-desktop-v1 .ask-harness-body { position: relative; display: flex; min-height: 0; flex: 1; flex-direction: column; }
+  #askin-desktop-v1 #ask-harness-map {
+    flex: 1 1 auto; min-height: 320px; height: var(--ask-graph-h, auto);
+  }
+  /* 그래프와 레포트 사이 세로 크기 조절 핸들. 사이드바 핸들과 같은 점 세 개를 가로로 눕힌다. */
+  #askin-desktop-v1 .ask-resize-row {
+    display: flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 3px;
+    height: 8px; border: 0; background: transparent; cursor: row-resize;
+  }
+  #askin-desktop-v1 .ask-resize-row span { width: 3px; height: 3px; border-radius: 50%; background: var(--ask-faint); opacity: .35; transition: opacity 120ms cubic-bezier(.2,0,0,1), background-color 120ms cubic-bezier(.2,0,0,1); }
+  #askin-desktop-v1 .ask-resize-row:hover span, #askin-desktop-v1 .ask-resize-row:focus-visible span, #askin-desktop-v1 .ask-resize-row.is-dragging span { opacity: .9; background: var(--ask-dim); }
+  #askin-desktop-v1 .ask-resize-row:focus-visible { outline: 2px solid var(--ask-purple); outline-offset: 2px; }
+  #askin-desktop-v1 .ask-report { display: flex; min-height: 200px; flex: 2 1 0; flex-direction: column; }
   #ask-sigma-container { position: absolute; inset: 0; }
   #ask-declared-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   .ask-report-note { margin: 10px 2px 0; color: var(--ask-faint); font-size: 12px; }
@@ -390,7 +415,11 @@
               <output class="ask-map-zoom-output" id="ask-zoom-level" aria-live="polite">100%</output>
               <button id="ask-zoom-in" type="button" aria-label="그래프 확대">＋</button>
             </div>
-            <div class="ask-node-popover" id="ask-node-popover" role="dialog" aria-labelledby="ask-popover-name" tabindex="-1" hidden>
+          </div>
+          <!-- 팝오버는 map 밖(하네스 body)에 둔다. map 은 overflow:hidden 이라 안에 두면
+               노드가 위 경계 근처일 때 잘렸다(사용자 요청 2026-09-29). body 기준으로 띄우고,
+               노드가 map 밖으로 나가면 renderer.mjs positionPopover 가 숨긴다. -->
+          <div class="ask-node-popover" id="ask-node-popover" role="dialog" aria-labelledby="ask-popover-name" tabindex="-1" hidden>
               <button class="ask-popover-close" id="ask-popover-close" type="button" aria-label="닫기">×</button>
               <div class="ask-popover-head">
                 <strong id="ask-popover-name"></strong>
@@ -420,6 +449,10 @@
           </div>
         </div>
       </section>
+
+      <div class="ask-resize-row" id="ask-resize-graph" role="separator" aria-orientation="horizontal" aria-label="그래프 높이 조절" tabindex="0">
+        <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+      </div>
 
       <section class="ask-report has-result" id="ask-report" aria-labelledby="ask-report-title">
         <header class="ask-panel-heading">

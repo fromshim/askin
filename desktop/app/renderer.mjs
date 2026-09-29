@@ -81,7 +81,12 @@ const keyClear = document.getElementById('ask-key-clear')
 const keyNote = document.getElementById('ask-key-note')
 
 const PROJECT_MIN_SIZE = 12 // desktop/design-concept.md: 호출 수와 무관하게 최소 크기를 보장한다
-const sizeFor = (calls) => 4 + Math.sqrt(calls) * 1.6
+// 호출 수가 커져도 원이 화면을 잡아먹지 않게 상한을 둔다. sqrt 라 이미 완만하지만 실측
+// (이 저장소 mcp:playwright 207회)에서 지름이 27px 까지 갔다 — 옆 노드·라벨을 덮었다.
+// 4 + sqrt·1.6 을 SIZE_MAX(18)에서 자른다: 16회면 상한 근처, 그 위로는 다 같은 크기다.
+// PROJECT_MIN_SIZE(12)는 그대로 상한 밑이라 안 눌린다.
+const SIZE_MAX = 18
+const sizeFor = (calls) => Math.min(SIZE_MAX, 4 + Math.sqrt(calls) * 1.6)
 // 이 수 이하면 라벨을 전부 띄운다. 실측: 저장소 20곳의 노드 수가 중앙값 6.5, 최대 31 이고
 // 그중 절반이 3개 이하다. 16 이면 중앙값 규모를 다 덮고 31개짜리에서만 임계값이 살아난다.
 // labelset 쿼리 파라미터로 오버라이드한다(기본값은 240px 맵용 재조정 값).
@@ -335,11 +340,29 @@ function renderNameCountList(items, target = popoverCallers) {
 // 프로토타입(desktop/askin-desktop-prototype.html)의 positionPopover() 를 그대로 옮긴다.
 // 다른 점은 좌표 출처뿐이다 — 프로토타입은 CSS 로 배치된 DOM 버튼의 getBoundingClientRect() 를
 // 읽고, 여기는 Sigma 캔버스 노드라 renderer.graphToViewport() 로 화면 좌표를 얻는다.
+// 프로토타입(desktop/askin-desktop-prototype.html)의 positionPopover() 를 옮긴 것에서, 팝오버가
+// 이제 map(overflow:hidden) 밖 .ask-harness-body 를 기준으로 뜬다(사용자 요청 2026-09-29). 좌표는
+// 여전히 노드의 뷰포트 위치(graphToViewport, map 기준)에서 얻고, body 기준으로 옮겨 얹는다.
+// map 은 body 안에서 요약 띠 아래에 있으므로 그 offset(mapRect - bodyRect)을 더한다.
+// 노드가 map 밖(패닝·줌으로 시야 이탈)이면 팝오버를 숨긴다 — 허공에 붙어 있지 않게.
+const harnessBodyEl = document.querySelector('.ask-harness-body')
+
 function positionPopover(nodeId) {
   const attrs = graph.getNodeAttributes(nodeId)
   const pt = renderer.graphToViewport({ x: attrs.x, y: attrs.y })
   const radius = (attrs.size ?? 6) / camera.ratio
   const mapRect = mapEl.getBoundingClientRect()
+  // 노드가 map 시야를 벗어나면 팝오버를 숨긴다(반경만큼 여유). 다시 들어오면 openPopover 나
+  // 다음 camera updated 에서 되살아난다 — selectedNode 는 유지한다.
+  const outOfView = pt.x < -radius || pt.y < -radius || pt.x > mapRect.width + radius || pt.y > mapRect.height + radius
+  if (outOfView) {
+    popover.hidden = true
+    return
+  }
+  if (popover.hidden && selectedNode === nodeId) popover.hidden = false
+  const bodyRect = harnessBodyEl.getBoundingClientRect()
+  const offsetX = mapRect.left - bodyRect.left // map 이 body 안에서 밀린 만큼(보통 0)
+  const offsetY = mapRect.top - bodyRect.top // 요약 띠 높이만큼
   const gap = 14
   popover.style.left = '0px'
   popover.style.top = '0px'
@@ -350,12 +373,13 @@ function positionPopover(nodeId) {
     flip = true
     top = pt.y + radius + gap
   }
-  top = Math.max(4, Math.min(top, mapRect.height - popRect.height - 4))
+  // 세로 위치는 body 안에서만 자른다(map 위 요약 띠 영역까지 팝오버가 올라와도 안 잘린다).
+  top = Math.max(4 - offsetY, Math.min(top, bodyRect.height - offsetY - popRect.height - 4))
   let left = pt.x - popRect.width / 2
-  left = Math.max(4, Math.min(left, mapRect.width - popRect.width - 4))
+  left = Math.max(4 - offsetX, Math.min(left, bodyRect.width - offsetX - popRect.width - 4))
   popover.dataset.flip = flip ? 'down' : 'up'
-  popover.style.left = `${left}px`
-  popover.style.top = `${top}px`
+  popover.style.left = `${left + offsetX}px`
+  popover.style.top = `${top + offsetY}px`
   const tailX = Math.max(10, Math.min(popRect.width - 10, pt.x - left))
   popover.style.setProperty('--ask-tail-x', `${tailX}px`)
 }
@@ -447,6 +471,7 @@ zoomInBtn.addEventListener('click', () => camera && camera.animatedZoom({ durati
 const layoutEl = document.querySelector('.ask-layout')
 const sidebarEl = document.querySelector('.ask-sidebar')
 const chatEl = document.querySelector('.ask-chat-panel')
+const mainPanelEl = document.querySelector('.ask-main-panel')
 const HANDLE_W = 8 // index.html 의 grid-template-columns 리터럴과 같은 값(desktop/tokens.md --shell-gap)
 const MAIN_MIN = 320 // index.html 의 minmax(320px, ...) 와 같은 값. 근거는 그 규칙의 주석 참고
 const PANEL_LIMITS = {
@@ -548,6 +573,61 @@ function setupResizeHandle(kind, handleEl) {
 setupResizeHandle('sidebar', document.getElementById('ask-resize-sidebar'))
 setupResizeHandle('chat', document.getElementById('ask-resize-chat'))
 restoreWidths()
+
+// 그래프 높이 조절 핸들(세로 드래그). 폭 핸들과 달리 세로라 따로 둔다. --ask-graph-h 를 세팅하고
+// localStorage 에 기억한다. 최소 220px(CSS min-height 와 같은 값), 최대는 main 패널 높이에서
+// 레포트 최소(200px)와 세션/헤더 몫을 뺀 값 — 레포트가 안 사라지게.
+const GRAPH_MIN = 220
+const REPORT_MIN = 200
+const GRAPH_KEY = 'askin.graphHeight'
+const graphResizeEl = document.getElementById('ask-resize-graph')
+
+function graphCeiling() {
+  const panelH = mainPanelEl.clientHeight
+  const mapTop = mapEl.getBoundingClientRect().top - mainPanelEl.getBoundingClientRect().top
+  // map 위(세션·요약 띠·헤더)와 아래 레포트 최소를 뺀 나머지가 그래프가 가질 수 있는 최대다.
+  return Math.max(GRAPH_MIN, panelH - mapTop - REPORT_MIN)
+}
+
+function applyGraphHeight(px) {
+  const clamped = Math.max(GRAPH_MIN, Math.min(graphCeiling(), px))
+  root.style.setProperty('--ask-graph-h', `${clamped}px`)
+  return clamped
+}
+
+function setupGraphResize() {
+  graphResizeEl.addEventListener('mousedown', (downEvent) => {
+    downEvent.preventDefault()
+    const startY = downEvent.clientY
+    const startH = mapEl.getBoundingClientRect().height
+    graphResizeEl.classList.add('is-dragging')
+    const onMove = (moveEvent) => applyGraphHeight(startH + (moveEvent.clientY - startY))
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      graphResizeEl.classList.remove('is-dragging')
+      try { localStorage.setItem(GRAPH_KEY, String(Math.round(mapEl.getBoundingClientRect().height))) } catch {}
+    }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  })
+  graphResizeEl.addEventListener('keydown', (event) => {
+    let dir = 0
+    if (event.key === 'ArrowUp') dir = -1
+    else if (event.key === 'ArrowDown') dir = 1
+    else return
+    event.preventDefault()
+    const next = applyGraphHeight(mapEl.getBoundingClientRect().height + dir * 16)
+    try { localStorage.setItem(GRAPH_KEY, String(Math.round(next))) } catch {}
+    graphResizeEl.setAttribute('aria-valuenow', String(Math.round(next)))
+  })
+  let stored
+  try { stored = localStorage.getItem(GRAPH_KEY) } catch { stored = null }
+  const n = Number(stored)
+  if (stored != null && Number.isFinite(n)) applyGraphHeight(n)
+}
+
+setupGraphResize()
 
 // ---------- 그래프 데이터 로드 · 배치 ----------
 
@@ -656,7 +736,9 @@ function initGraphRenderer() {
   camera.on('updated', () => {
     updateZoomReadout()
     updateDeclaredEdges()
-    if (!popover.hidden) positionPopover(activeNode())
+    // 선택된 노드가 있으면 숨김 여부와 무관하게 다시 잰다 — 패닝으로 시야에 되들어오면
+    // positionPopover 가 스스로 다시 보이게 한다.
+    if (selectedNode) positionPopover(selectedNode)
   })
 
   const ro = new ResizeObserver(() => {
@@ -664,7 +746,7 @@ function initGraphRenderer() {
     renderer.resize()
     renderer.refresh()
     updateDeclaredEdges()
-    if (!popover.hidden) positionPopover(activeNode())
+    if (selectedNode) positionPopover(selectedNode)
   })
   ro.observe(mapEl)
 
