@@ -18,7 +18,7 @@ import { harnessDocs, agentDefs, skillIndex } from '../../src/refs.mjs'
 import { buildReport } from '../../src/report.mjs'
 import { findings, counts, KIND_NAMES } from '../../src/fix.mjs'
 import { formatValue } from '../../src/axes.mjs'
-import { cards, inventory, handoff, loadIgnored, saveIgnored, runChat } from '../../src/coach.mjs'
+import { cards, inventory, handoff, chatPrompt, loadIgnored, saveIgnored, runChat } from '../../src/coach.mjs'
 import { listProjectPaths, addProjectPath, removeProjectPath } from './projects.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -435,13 +435,15 @@ ipcMain.handle('graph:load', (event, repoPath) => {
   if (!repoPath) throw new Error('graph:load 는 저장소 경로가 있어야 한다')
   return layoutGraph(repoPath)
 })
-// 카드 하나를 지시서 마크다운으로. 렌더러가 클립보드에 담는다(채팅 패널이 아직 없다).
-ipcMain.handle('coach:handoff', (event, repoPath, cardId) => {
+// 카드 하나를 지시서 마크다운으로. "지시서 복사"는 그대로 클립보드에 담고, "채팅에서
+// 고치기"(forChat)는 누른 버튼·아직 없는 값을 덧붙인 chatPrompt() 를 채팅 패널로 보낸다.
+ipcMain.handle('coach:handoff', (event, repoPath, cardId, { forChat = false } = {}) => {
   if (!repoPath || !cardId) throw new Error('coach:handoff 는 저장소 경로와 카드 id 가 있어야 한다')
   const report = buildReport({ repo: repoPath })
   const card = cards(report, { ignored: loadIgnored() }).find((c) => c.id === cardId)
   if (!card) throw new Error(`카드를 못 찾았다: ${cardId}`)
-  return handoff(card, report, { repo: repoPath })
+  const markdown = handoff(card, report, { repo: repoPath })
+  return forChat ? chatPrompt(markdown, card) : markdown
 })
 // "문제 아님". 카드 id 를 전역 무시 목록에 쌓는다(loadIgnored/saveIgnored 는 저장소를 안 가린다 —
 // src/coach.mjs 인터페이스 계약).

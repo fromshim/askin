@@ -1,13 +1,28 @@
 ▶ runChat
-  ✔ claude provider builds -p argv (5.604291ms)
-  ✔ codex provider builds exec argv (4.095792ms)
-  ✔ missing CLI surfaces guidance without hanging (1.563208ms)
-✔ runChat (11.867792ms)
-ℹ tests 3
-ℹ suites 1
-ℹ pass 3
+  ✔ claude 는 -p <지시서> 로 부르고 지시서가 CLI 에 닿는다 (89.528875ms)
+  ✔ codex 는 exec - 로 부르고 지시서는 stdin 으로 간다 (90.977709ms)
+  ✔ claude -p 가 stdin 을 EOF 까지 읽어도 멈추지 않는다(stdin 을 닫는다) (8.056334ms)
+  ✔ 0 이 아닌 종료 코드는 ok:false 와 stderr·code 로 드러난다 (14.395833ms)
+  ✔ CLI 가 없으면 설치·로그인 안내로 실패하고 멈추지 않는다 (1.538ms)
+  ✔ 모르는 provider 는 아무것도 띄우지 않고 거절한다 (0.1895ms)
+✔ runChat (216.617834ms)
+▶ chatPrompt
+  ✔ 누른 버튼을 맨 위에, 지시서 본문을 그대로 싣는다 (0.078583ms)
+  ✔ 아직 못 뽑는 세 줄(차액 근거·세션 전사 경로·다시 재는 루프)을 없다고 적는다 (0.041875ms)
+  ✔ 카드 추천에 비용 추정이 붙어 있으면 차액 근거는 없다고 하지 않고 그 문구를 싣는다 (0.037625ms)
+✔ chatPrompt (0.246042ms)
+▶ markdownSegments
+  ✔ 코드 펜스는 code 조각, 나머지는 text 조각이다 (0.184709ms)
+  ✔ 닫히지 않은 펜스는 끝까지 code 로 본다 (0.048167ms)
+  ✔ HTML 은 해석하지 않고 글자로 남긴다 (0.052458ms)
+  ✔ 모의 CLI 출력이 조각으로 나뉜다 (0.038666ms)
+  ✔ 빈 입력은 빈 목록이다 (0.024333ms)
+✔ markdownSegments (0.411334ms)
+ℹ tests 14
+ℹ suites 3
+ℹ pass 14
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 47.926875
+ℹ duration_ms 253.808833

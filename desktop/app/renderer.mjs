@@ -11,6 +11,7 @@
 // (initGraphRenderer). 이후 프로젝트를 바꿀 때는 프로브처럼 clear+rebuild+animatedReset 다.
 
 import { prettyModelName } from './model-name.mjs'
+import { markdownSegments } from './chat-markdown.mjs'
 
 const root = document.getElementById('askin-desktop-v1')
 const params = new URLSearchParams(location.search)
@@ -62,9 +63,7 @@ const sessionEmpty = document.getElementById('ask-session-empty')
 const sessionRowsEl = document.getElementById('ask-session-rows')
 
 const chatTabs = document.getElementById('ask-chat-tabs')
-const chatActiveTab = document.getElementById('ask-active-tab')
 const chatNewBtn = document.getElementById('ask-new-chat')
-const chatBody = document.getElementById('ask-chat-body')
 const chatEmpty = document.getElementById('ask-chat-empty')
 const chatMessages = document.getElementById('ask-chat-messages')
 const chatChoices = document.getElementById('ask-chat-choices')
@@ -947,8 +946,8 @@ function weakCardEl(card) {
   chatBtn.addEventListener('click', async () => {
     chatBtn.disabled = true
     try {
-      const markdown = await window.askin.coachHandoff(currentPath, card.id)
-      startChatFromHandoff(markdown)
+      const markdown = await window.askin.coachHandoff(currentPath, card.id, { forChat: true })
+      await startChatFromHandoff(markdown, card.title)
     } catch (e) {
       console.error('핸드오프를 못 받았다', e)
     } finally {
@@ -1241,36 +1240,33 @@ function switchChat(id) {
   renderChatBody()
 }
 
-function addMessage(chatId, role, text, { error = false } = {}) {
+function addMessage(chatId, role, text, { error = false, provider = null } = {}) {
   const chat = chats.find((c) => c.id === chatId)
   if (!chat) return
-  chat.messages.push({ role, text, error, ts: Date.now() })
+  chat.messages.push({ role, text, error, provider, ts: Date.now() })
   if (activeChatId !== chatId) switchChat(chatId)
   else renderChatBody()
 }
 
 function renderChatTabs() {
-  // 기존 탭 버튼 중 첫 번째(활성 탭)를 제외하고 모두 지운 뒤 새로 그린다.
-  while (chatTabs.children.length > 2) {
-    chatTabs.removeChild(chatTabs.children[1])
-  }
-  for (let i = chats.length - 1; i >= 0; i--) {
-    const chat = chats[i]
+  // 탭은 chats 배열에서 매번 새로 그린다. 스페이서(.ask-tab-spacer)와 ＋ 버튼은 그대로 두고
+  // 그 앞에 탭을 끼운다(프로토타입 askin-desktop-prototype.html 의 insertBefore 와 같은 자리).
+  for (const el of [...chatTabs.querySelectorAll('.ask-chat-tab')]) el.remove()
+  const spacer = chatTabs.querySelector('.ask-tab-spacer')
+  for (const chat of chats) {
+    const selected = chat.id === activeChatId
     const btn = document.createElement('button')
-    btn.className = `ask-chat-tab${chat.id === activeChatId ? ' is-active' : ''}`
+    btn.className = `ask-chat-tab${selected ? ' is-active' : ''}`
     btn.type = 'button'
-    btn.role = 'tab'
-    btn.setAttribute('aria-selected', String(chat.id === activeChatId))
+    btn.setAttribute('role', 'tab')
+    btn.setAttribute('aria-selected', String(selected))
+    btn.title = chat.name
     const span = document.createElement('span')
     span.textContent = chat.name
     btn.appendChild(span)
     btn.addEventListener('click', () => switchChat(chat.id))
-    chatTabs.insertBefore(btn, chatActiveTab.nextSibling)
+    chatTabs.insertBefore(btn, spacer)
   }
-  const active = activeChat()
-  chatActiveTab.querySelector('span').textContent = active.name
-  chatActiveTab.classList.toggle('is-active', active.id === activeChatId)
-  chatActiveTab.setAttribute('aria-selected', String(active.id === activeChatId))
 }
 
 function renderChatBody() {
@@ -1279,10 +1275,7 @@ function renderChatBody() {
   chatEmpty.hidden = hasMessages
   chatMessages.hidden = !hasMessages
   chatChoices.hidden = !hasMessages
-  chatMessages.innerHTML = ''
-  for (const m of chat.messages) {
-    chatMessages.appendChild(messageEl(m))
-  }
+  chatMessages.replaceChildren(...chat.messages.map(messageEl))
   chatMessages.scrollTop = chatMessages.scrollHeight
 }
 
@@ -1293,13 +1286,15 @@ function messageEl(m) {
     div.textContent = m.text
     return div
   }
-  const row = document.createElement('div')
-  row.className = m.role === 'user' ? 'ask-message is-user' : 'ask-agent-message-row'
   if (m.role === 'user') {
-    row.textContent = m.text
-    if (m.error) row.classList.add('is-error')
+    const row = document.createElement('div')
+    row.className = 'ask-message is-user'
+    // 사용자 말풍선(지시서 포함)도 마크다운 조각으로 그린다 — 코드 펜스가 한 줄로 뭉개지지 않게.
+    renderMarkdownInto(row, m.text)
     return row
   }
+  const row = document.createElement('div')
+  row.className = 'ask-agent-message-row'
   const orb = document.createElement('div')
   orb.className = 'ask-agent-orb'
   orb.setAttribute('role', 'img')
@@ -1308,33 +1303,32 @@ function messageEl(m) {
   const bubble = document.createElement('div')
   bubble.className = `ask-message is-agent${m.error ? ' is-error' : ''}`
   const label = document.createElement('small')
-  label.textContent = m.error ? '오류' : 'Claude/Codex'
+  label.textContent = m.error ? `${m.provider ?? 'CLI'} 오류` : (m.provider ?? 'CLI')
   bubble.appendChild(label)
   const body = document.createElement('div')
   renderMarkdownInto(body, m.text)
   bubble.appendChild(body)
-  row.appendChild(orb)
-  row.appendChild(bubble)
+  row.append(orb, bubble)
   return row
 }
 
+const PROVIDER_LABEL = { claude: 'Claude Code', codex: 'Codex CLI' }
+
+// 조각 나누기는 chat-markdown.mjs(순수 함수, node 테스트 대상)가 한다. 여기서는 조각을
+// textContent 로만 넣는다 — 외부 CLI 출력을 HTML 로 해석하지 않는다.
 function renderMarkdownInto(container, text) {
-  container.innerHTML = ''
-  // 마크다운 중 코드 블록만 <pre> 로, 나머지는 텍스트 그대로 보여준다. 외부 CLI 출력을
-  // 그대로 믿을 수 없으므로 HTML 은 escape 한다.
-  const parts = text.split(/(```[\s\S]*?```)/g)
-  for (const part of parts) {
-    if (part.startsWith('```') && part.endsWith('```')) {
+  container.replaceChildren()
+  for (const seg of markdownSegments(text)) {
+    if (seg.type === 'code') {
       const pre = document.createElement('pre')
-      pre.textContent = part.slice(3, -3).replace(/^[a-zA-Z0-9_-]+\n/, '')
+      pre.textContent = seg.text
       container.appendChild(pre)
-    } else {
-      const lines = part.split('\n')
-      for (let i = 0; i < lines.length; i++) {
-        if (i > 0) container.appendChild(document.createElement('br'))
-        container.appendChild(document.createTextNode(lines[i]))
-      }
+      continue
     }
+    seg.text.split('\n').forEach((line, i) => {
+      if (i > 0) container.appendChild(document.createElement('br'))
+      container.appendChild(document.createTextNode(line))
+    })
   }
 }
 
@@ -1343,39 +1337,49 @@ function setSendDisabled(disabled) {
   chatInput.disabled = disabled
 }
 
-async function sendChat() {
-  const text = chatInput.value.trim()
-  if (!text) return
+// 입력창과 카드 버튼이 같은 길로 CLI 를 부른다. 0 이 아닌 종료 코드와 실행 실패(CLI 없음)
+// 둘 다 오류 말풍선으로 남긴다 — 조용히 버리지 않는다.
+let chatBusy = false
+async function runInChat(chatId, text) {
+  if (chatBusy) return
+  chatBusy = true
   const provider = chatProvider.value
-  const chat = activeChat()
-  chatInput.value = ''
-  addMessage(chat.id, 'user', text)
+  const name = PROVIDER_LABEL[provider] ?? provider
+  addMessage(chatId, 'user', text)
   setSendDisabled(true)
-  chatLive.textContent = '답변을 기다리는 중이에요'
+  chatLive.textContent = `${name} 의 답을 기다리는 중이에요`
   try {
     const res = await window.askin.chatSend(text, provider, currentPath)
     if (!res.ok) {
-      addMessage(chat.id, 'agent', `실행은 끝났지만 종료 코드가 0 이 아니에요.\n${res.stderr || res.stdout}`, { error: true })
+      const why = res.signal ? `신호 ${res.signal}` : `종료 코드 ${res.code}`
+      addMessage(chatId, 'agent', `${name} 가 실패했어요 (${why}).\n${res.stderr || res.stdout || '(출력 없음)'}`, { error: true, provider: name })
     } else {
-      addMessage(chat.id, 'agent', res.stdout || res.stderr || '(빈 응답)')
+      addMessage(chatId, 'agent', res.stdout || res.stderr || '(빈 응답)', { provider: name })
     }
   } catch (err) {
-    addMessage(chat.id, 'agent', err.message, { error: true })
+    // ipcRenderer.invoke 가 붙이는 "Error invoking remote method 'chat:send': Error: " 는 떼고 보인다.
+    const msg = String(err?.message ?? err).replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
+    addMessage(chatId, 'agent', msg, { error: true, provider: name })
   } finally {
+    chatBusy = false
     setSendDisabled(false)
     chatLive.textContent = ''
     chatInput.focus()
   }
 }
 
-function startChatFromHandoff(markdown) {
-  let chatId
-  if (chatChoiceCurrent.classList.contains('is-active')) {
-    chatId = activeChat().id
-  } else {
-    chatId = createChat('고치기')
-  }
-  addMessage(chatId, 'user', markdown)
+function sendChat() {
+  const text = chatInput.value.trim()
+  if (!text || chatBusy) return
+  chatInput.value = ''
+  return runInChat(activeChat().id, text)
+}
+
+// "채팅에서 고치기". 선택지(새 채팅 / 현재 채팅)에 따라 탭을 고르고 지시서를 바로 CLI 에 보낸다.
+function startChatFromHandoff(markdown, title) {
+  if (chatBusy) return
+  const chatId = chatChoiceCurrent.classList.contains('is-active') ? activeChat().id : createChat(title || '고치기')
+  return runInChat(chatId, markdown)
 }
 
 chatChoiceNew.addEventListener('click', () => {
@@ -1386,7 +1390,8 @@ chatChoiceCurrent.addEventListener('click', () => {
   chatChoiceCurrent.classList.add('is-active')
   chatChoiceNew.classList.remove('is-active')
 })
-chatNewBtn.addEventListener('click', () => createChat('새 대화'))
+chatNewBtn.addEventListener('click', () => { if (!chatBusy) createChat('새 대화') })
+ensureChat() // index.html 의 정적 탭을 chats 배열이 그린 탭으로 바꾼다
 chatSend.addEventListener('click', sendChat)
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {

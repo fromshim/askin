@@ -1,2 +1,5 @@
-claude -p hello
+claude -p hello-claude
+codex exec -
+claude -p reads-stdin
+claude -p fail
 codex exec -

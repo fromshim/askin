@@ -45,7 +45,7 @@ contextBridge.exposeInMainWorld('askin', {
   // 그래프보다 오래 걸린다(실측 545ms ~ 5.4초). 렌더러가 그래프를 먼저 그리고 이걸 기다린다.
   loadReport: (repoPath) => ipcRenderer.invoke('report:load', repoPath),
   // "지시서 복사" 버튼. 카드 하나를 마크다운 지시서로 바꿔 받는다 — 렌더러가 클립보드에 담는다.
-  coachHandoff: (repoPath, cardId) => ipcRenderer.invoke('coach:handoff', repoPath, cardId),
+  coachHandoff: (repoPath, cardId, opts) => ipcRenderer.invoke('coach:handoff', repoPath, cardId, opts),
   // "문제 아님" 버튼. 카드 id 를 무시 목록에 쌓고 갱신된 레포트를 다시 받으라고 렌더러가 부른다.
   coachIgnore: (repoPath, cardId) => ipcRenderer.invoke('coach:ignore', repoPath, cardId),
   // 채팅 입력을 로컬 CLI(claude/codex)에 넘긴다. token 값은 절대 주고받지 않는다.

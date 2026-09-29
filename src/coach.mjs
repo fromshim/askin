@@ -463,21 +463,26 @@ export function handoff(card, report, { repo } = {}) {
 
 // spawn 을 인자로 받아 테스트에서 갈아 끼울 수 있게 한다. 기본값은 node:child_process 의
 // spawn 이다. cwd 는 CLI 가 프로젝트를 읽을 기준 디렉터리다. token 값은 절대 넘기지 않는다.
+//
+// stdin 은 두 갈래 모두 반드시 닫는다. claude -p 는 stdin 이 TTY 가 아니면 EOF 까지 읽어
+// 프롬프트에 덧붙인다 — 파이프를 열어둔 채로 두면 영원히 기다린다(“never a hang” 계약).
+// codex exec 는 PROMPT 자리에 '-' 를 주면 지시문을 stdin 에서 읽는다(codex exec --help).
+// 긴 지시서를 argv 대신 stdin 으로 넘겨 ps 에 지시서 전문이 안 보이게 한다.
 export function runChat({ provider, prompt, cwd, spawn = defaultSpawn }) {
   const binary = provider
   let argv
-  let writeStdin = null
+  let stdinText = ''
   if (provider === 'claude') {
     argv = ['-p', prompt]
   } else if (provider === 'codex') {
     argv = ['exec', '-']
-    writeStdin = prompt
+    stdinText = prompt
   } else {
     return Promise.reject(new Error(`지원하지 않는 provider: ${provider}`))
   }
 
   return new Promise((resolve, reject) => {
-    const child = spawn(binary, argv, { cwd, shell: false })
+    const child = spawn(binary, argv, { cwd, shell: false, stdio: ['pipe', 'pipe', 'pipe'] })
     let stdout = ''
     let stderr = ''
 
@@ -487,23 +492,51 @@ export function runChat({ provider, prompt, cwd, spawn = defaultSpawn }) {
     child.on('error', (err) => {
       if (err.code === 'ENOENT') {
         const guidance = provider === 'claude'
-          ? 'claude CLI 를 설치해야 한다. https://code.claude.com/docs/en/authentication 참고'
-          : 'codex CLI 가 필요하다. `codex login` 으로 로그인했는지 확인필라.'
+          ? 'claude CLI 를 설치하고 `claude` 로 한 번 로그인해야 한다. https://code.claude.com/docs/en/authentication 참고'
+          : 'codex CLI 를 설치하고 `codex login` 으로 로그인해야 한다. https://developers.openai.com/codex/auth 참고'
         reject(new Error(`${binary} 를 찾을 수 없다. ${guidance}`))
         return
       }
       reject(err)
     })
 
-    child.on('close', (code) => {
-      resolve({ argv: [binary, ...argv], stdout, stderr, ok: code === 0 })
+    // 종료 코드가 0 이 아니어도 reject 하지 않고 ok:false 로 돌려준다 — 렌더러가 stderr 를
+    // 오류 말풍선으로 그린다(조용히 버리지 않는다). code 는 사람이 읽을 수 있게 남긴다.
+    child.on('close', (code, signal) => {
+      resolve({ argv: [binary, ...argv], stdout, stderr, ok: code === 0, code, signal: signal ?? null })
     })
 
-    if (writeStdin != null && child.stdin) {
-      child.stdin.write(writeStdin)
-      child.stdin.end()
-    }
+    // 쓰기 도중 자식이 먼저 죽으면 EPIPE 가 난다. 결과는 close 가 알리므로 여기선 삼키지 않고
+    // stderr 에 붙여 둔다.
+    child.stdin?.on('error', (err) => { stderr += `\n[stdin] ${err.message}` })
+    child.stdin?.end(stdinText)
   })
+}
+
+// 카드에서 "채팅에서 고치기"를 눌렀을 때 CLI 로 가는 마크다운. handoff() 가 만든 본문에
+// desktop/wireframe.md 4.0-G 의 여섯 O 줄 중 handoff() 가 안 담는 "사용자가 누른 버튼"을
+// 맨 위에 적고, 아직 못 뽑는 세 X 줄(차액 근거·세션 전사 경로·다시 재는 루프)은 "없다"고
+// 끝에 못박는다. 받는 쪽이 없는 값을 있다고 짐작하지 않게 한다. 차액 근거는 카드
+// recommend 에 costLabel() 문구가 붙어 있으면 그것을 싣는다(Todo 6 재료).
+export const CHAT_MISSING = Object.freeze({
+  cost: '차액 근거(위반 건마다 실제 모델·토큰, 기준 모델, 단가 기준): 이 지시서에 없음',
+  transcripts: '위반 건의 세션 전사 경로: 이 지시서에 없음',
+  remeasure: '끝나면 앱이 다시 재서 카드를 지우는 루프: 없음 — 고친 뒤 앱에서 새로고침해야 한다',
+})
+
+export function chatPrompt(markdown, card = {}, { button = '채팅에서 고치기' } = {}) {
+  const cost = /estimate\)/.test(card.recommend ?? '') ? card.recommend : null
+  return [
+    `> 누른 버튼: ${button}`,
+    '',
+    markdown,
+    '',
+    '## 이 지시서에 아직 없는 것',
+    '',
+    `- ${cost ? `차액 근거: ${cost}` : CHAT_MISSING.cost}`,
+    `- ${CHAT_MISSING.transcripts}`,
+    `- ${CHAT_MISSING.remeasure}`,
+  ].join('\n')
 }
 
 // ── 문제 아님 ──────────────────────────────────────────────────────────
