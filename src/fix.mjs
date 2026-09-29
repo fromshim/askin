@@ -12,6 +12,22 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { harnessDocs } from './refs.mjs'
 
+// 받는 쪽(에이전트·사람)이 다시 잴 때 칠 명령. 한 곳에서만 만든다(fix.mjs 지시서, coach.mjs
+// 규칙 지시서, report.mjs 상주 알림).
+//
+// 패키지 앱에서는 이 파일이 app.asar 안에 있다. 사용자 PC 의 node 는 asar 를 못 읽고, Claude Code
+// 네이티브 설치만 한 Mac 에는 node 가 아예 없을 수도 있다. 그래서 asar 안이면 앱 실행 파일을
+// node 처럼 돌린다(ELECTRON_RUN_AS_NODE=1 — Electron 이 asar 안 파일을 읽어 준다).
+export const REPORT_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), 'report.mjs')
+
+const shq = (s) => (/^[\w@%+=:,./-]+$/.test(s) ? s : `'${String(s).replace(/'/g, `'\\''`)}'`)
+
+export function reportCommand(args, { reportPath = REPORT_PATH, execPath = process.execPath } = {}) {
+  const tail = args.map(shq).join(' ')
+  if (reportPath.includes(`.asar${path.sep}`)) return `ELECTRON_RUN_AS_NODE=1 ${shq(execPath)} ${shq(reportPath)} ${tail}`
+  return `node ${shq(reportPath)} ${tail}`
+}
+
 // 종류를 한 표에 둔다. 이름이 두 곳에 있으면 갈래의 몫과 전체가 다른 말로 세어진다.
 //   지시서의 "이 갈래가 맡은 몫"     kind → 이름
 //   지시서의 "전체는 지금 이렇다"    이름 → 건수
@@ -277,8 +293,7 @@ export function instruction(lane, allLanes, { repo, verify, before, siblings = [
     // 범위가 리포트와 같아야 한다. 전 프로젝트에서 뽑은 갈래에 `--repo .` 를 주면
     // 받는 쪽이 딴 범위를 재고 "안 줄었다"고 읽는다. 근거가 사라진 축은 저장소와
     // 무관하게 나오니 실제로 이 경우가 생긴다.
-    verify ??
-      `node ${path.join(path.dirname(fileURLToPath(import.meta.url)), 'report.mjs')} ${repo ? `--repo ${repo}` : '--all'}`,
+    verify ?? reportCommand(repo ? ['--repo', repo] : ['--all']),
     '```',
   )
 

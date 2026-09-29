@@ -4,7 +4,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { counts, findings, lanes, instruction, plan } from '../src/fix.mjs'
+import { counts, findings, lanes, instruction, plan, reportCommand } from '../src/fix.mjs'
 
 const report = (over = {}) => ({
   scope: { repo: '/repo' },
@@ -431,4 +431,17 @@ test('근거를 못 읽는 것과 문구가 사라진 것은 고치는 길이 �
 
   const drifted = findings(report({ citations: [{ axis: 'a', cite: '~/.claude/CLAUDE.md', file: '/f', reason: '~/.claude/CLAUDE.md 에 그 규칙이 없어 판정할 수 없다: x' }] }))
   assert.match(drifted[0].detail, /문구를 되살리거나/)
+})
+
+test('다시 재는 명령: 소스에서는 node 로, 패키지 앱(asar) 안에서는 앱 실행 파일을 node 처럼 돌린다', () => {
+  assert.equal(reportCommand(['--repo', '/r'], { reportPath: '/src/report.mjs' }), 'node /src/report.mjs --repo /r')
+  // 사용자 PC 의 node 는 asar 를 못 읽고, node 가 없을 수도 있다
+  assert.equal(
+    reportCommand(['--all'], { reportPath: '/Applications/askin.app/Contents/Resources/app.asar/src/report.mjs', execPath: '/Applications/askin.app/Contents/MacOS/askin' }),
+    'ELECTRON_RUN_AS_NODE=1 /Applications/askin.app/Contents/MacOS/askin /Applications/askin.app/Contents/Resources/app.asar/src/report.mjs --all',
+  )
+})
+
+test('다시 재는 명령: 공백·따옴표가 든 경로를 셸이 쪼개지 않게 감싼다', () => {
+  assert.equal(reportCommand(['--repo', "/My Repo/it's"], { reportPath: '/src/report.mjs' }), "node /src/report.mjs --repo '/My Repo/it'\\''s'")
 })

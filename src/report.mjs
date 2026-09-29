@@ -23,7 +23,7 @@ import { candidates, harnessCorpus, judgeable, MIN_DOCS } from './contradictions
 import { compliance, observation, loadAxes, userAxesPath, checkCitations, citation, axisFingerprint, formatValue } from './axes.mjs'
 import { save, delta, condense, saveKey, storePath } from './snapshot.mjs'
 import { render } from './render.mjs'
-import { counts, plan } from './fix.mjs'
+import { counts, plan, reportCommand } from './fix.mjs'
 import { cards, loadIgnored } from './coach.mjs'
 import { watch, worseThings } from './watch.mjs'
 import { weeklySeries, sparkline, trendGap } from './series.mjs'
@@ -520,7 +520,7 @@ function runWatch(axes) {
 
     // 알림 한 줄로 무엇을 할지 정해야 한다. 다음 걸음을 같이 준다.
     // 범위는 리포트와 같아야 한다. 지시서의 검증 명령과 같은 이유다(fix.mjs).
-    const how = `node ${process.argv[1]} ${opts.repo ? `--repo ${opts.repo} ` : '--all '}--plan`
+    const how = reportCommand([...(opts.repo ? ['--repo', opts.repo] : ['--all']), '--plan'], { reportPath: process.argv[1] })
 
     if (worse.length) {
       console.log(`\n[${stamp}] 나빠졌다`)

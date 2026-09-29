@@ -14,9 +14,8 @@
 import path from 'node:path'
 import os from 'node:os'
 import fs from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { spawn as defaultSpawn } from 'node:child_process'
-import { findings, plan, KIND_NAMES } from './fix.mjs'
+import { findings, plan, KIND_NAMES, reportCommand } from './fix.mjs'
 import { harnessDocs, agentDefs, skillIndex } from './refs.mjs'
 import { NO_DEFINITION } from './graph.mjs'
 import { RATE_BASIS } from './rates.mjs'
@@ -442,7 +441,7 @@ function ruleHandoff(card, report, repo) {
     // fix.mjs 의 verify 명령과 같은 자리에서 같은 방식으로 만든다(report.mjs 를 이 파일과
     // 나란히 둔 경로로 찾는다) — 범위가 리포트와 달라지면 받는 쪽이 딴 범위를 재고
     // "안 줄었다"고 읽는다(fix.mjs instruction() 의 같은 주석 참고).
-    `node ${path.join(path.dirname(fileURLToPath(import.meta.url)), 'report.mjs')} ${repo ? `--repo ${repo}` : '--all'}`,
+    reportCommand(repo ? ['--repo', repo] : ['--all']),
     '```',
     '',
     '이 축의 위반이 0 이어야 한다.',
