@@ -57,5 +57,9 @@ contextBridge.exposeInMainWorld('askin', {
   authOpenLogout: (provider) => ipcRenderer.invoke('auth:open-logout', provider),
   authKeySet: (provider, key) => ipcRenderer.invoke('auth:key-set', provider, key),
   authKeyClear: (provider) => ipcRenderer.invoke('auth:key-clear', provider),
+  // 첫 설치 안내. 준비 목록을 받고, 닫으면 다음부터는 필수 항목이 빠졌을 때만 뜬다.
+  setupCheck: () => ipcRenderer.invoke('setup:check'),
+  setupDismiss: () => ipcRenderer.invoke('setup:dismiss'),
+  setupOpenLink: (url) => ipcRenderer.invoke('setup:open-link', url),
   protoCss: extractPrototypeCss(),
 })

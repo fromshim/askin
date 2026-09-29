@@ -1517,6 +1517,75 @@ chatChoiceCurrent.addEventListener('click', () => {
 chatNewBtn.addEventListener('click', () => { if (!chatBusy) createChat('새 대화') })
 ensureChat() // index.html 의 정적 탭을 chats 배열이 그린 탭으로 바꾼다
 refreshAuth()
+
+// ---------- 첫 설치 안내 ----------
+// 처음 한 번, 그리고 필수 항목(Claude Code 기록)이 없을 때 뜬다. 닫으면 main 이 "봤다"를 적는다.
+// shot 모드(스크린샷 검증)에서는 ?setup=1 일 때만 연다 — 다른 화면 검증을 가리지 않게.
+const setupDialog = document.getElementById('ask-setup')
+const setupList = document.getElementById('ask-setup-list')
+const setupNote = document.getElementById('ask-setup-note')
+const LEVEL_LABEL = { required: '필수', recommended: '권장', optional: '선택' }
+
+function setupItemEl(item) {
+  const li = document.createElement('li')
+  li.className = `ask-setup-item ${item.ready ? 'is-ready' : 'is-missing'}${item.level === 'required' ? ' is-required' : ''}`
+  const mark = document.createElement('span')
+  mark.className = 'ask-setup-mark'
+  mark.setAttribute('aria-hidden', 'true')
+  mark.textContent = item.ready ? '✓' : item.level === 'required' ? '!' : '–'
+  const title = document.createElement('div')
+  title.className = 'ask-setup-title'
+  title.textContent = item.title
+  const level = document.createElement('span')
+  level.className = 'ask-setup-level'
+  level.textContent = `${LEVEL_LABEL[item.level]} · ${item.ready ? '준비됨' : '없음'}`
+  title.appendChild(level)
+  const detail = document.createElement('div')
+  detail.className = 'ask-setup-detail'
+  detail.textContent = item.detail
+  li.append(mark, title)
+  if (item.action) {
+    li.appendChild(authButton(item.action.label, async () => {
+      if (item.action.kind === 'link') {
+        await window.askin.setupOpenLink(item.action.url)
+      } else {
+        await window.askin.authOpenLogin(item.action.provider, { headless: false })
+        setupNote.textContent = '터미널에서 로그인을 마친 뒤 "다시 확인"을 눌러 주세요'
+      }
+    }))
+  }
+  li.appendChild(detail)
+  return li
+}
+
+async function loadSetup() {
+  const res = await window.askin.setupCheck()
+  setupList.replaceChildren(...res.items.map(setupItemEl))
+  setupNote.textContent = res.needsAttention
+    ? 'Claude Code 로 작업을 한 번 해 보면 레포트와 그래프가 채워져요'
+    : '준비됐어요. 왼쪽에서 프로젝트를 골라 보세요'
+  return res
+}
+
+async function openSetup() {
+  await loadSetup()
+  if (!setupDialog.open) setupDialog.showModal()
+}
+
+document.getElementById('ask-setup-recheck').addEventListener('click', async () => {
+  await loadSetup()
+  refreshAuth()
+})
+document.getElementById('ask-setup-done').addEventListener('click', () => setupDialog.close())
+// Esc 로 닫아도 "봤다"로 친다. 필수 항목이 빠져 있으면 다음 실행 때 다시 뜬다.
+setupDialog.addEventListener('close', () => { window.askin.setupDismiss().catch(() => {}); refreshAuth() })
+document.getElementById('ask-setup-open').addEventListener('click', () => openSetup().catch((e) => console.error('setup', e)))
+
+;(async () => {
+  if (isShotMode && params.get('setup') !== '1') return
+  const res = await loadSetup()
+  if (res.firstRun || res.needsAttention || params.get('setup') === '1') setupDialog.showModal()
+})().catch((e) => console.error('setup check failed', e))
 chatSend.addEventListener('click', sendChat)
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {

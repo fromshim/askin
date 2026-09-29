@@ -7,7 +7,7 @@
 // 읽는다 — IPC 일곱으로만 오간다(projects:list · projects:add · projects:remove · graph:load ·
 // report:load · coach:handoff · coach:ignore).
 
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, safeStorage } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, safeStorage, shell } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -25,6 +25,9 @@ import {
 } from '../../src/auth.mjs'
 import { listProjectPaths, addProjectPath, removeProjectPath } from './projects.mjs'
 import { resolvedPath } from './shell-path.mjs'
+import { gatherFacts, setupChecklist, readSeen, markSeen, SETUP_LINKS } from './setup.mjs'
+import { ROOT as CLAUDE_ROOT } from '../../src/scan.mjs'
+import { CODEX_ROOT } from '../../src/codex.mjs'
 
 // Finder·Dock 으로 뜨면 PATH 에 claude·codex 가 없다. 자식 프로세스를 띄우기 전에 한 번 고친다
 // (desktop/app/shell-path.mjs).
@@ -140,6 +143,7 @@ if (shotPath) {
   query.set('shot', '1')
   if (process.env.ASKIN_SHOT_PROJECT) query.set('project', process.env.ASKIN_SHOT_PROJECT)
   if (process.env.ASKIN_LABELSET) query.set('labelset', process.env.ASKIN_LABELSET)
+  if (process.env.ASKIN_SHOT_SETUP) query.set('setup', '1') // 첫 설치 안내를 연 채로 찍는다
     win.webContents.on('page-title-updated', async (event, title) => {
       if (title !== 'askin:ready') return
       event.preventDefault()
@@ -510,6 +514,24 @@ ipcMain.handle('auth:key-clear', async (event, provider) => {
   secrets().clear(provider)
   consent.revoke(provider)
   return publicStatus(await authStatus(provider))
+})
+
+// ── 첫 설치 안내(desktop/app/setup.mjs) ────────────────────────────────
+// 무엇이 준비됐는지 한 목록으로. firstRun 은 userData 아래 작은 파일로만 기억한다(비밀 아님).
+const firstRunFile = () => path.join(app.getPath('userData'), 'first-run.json')
+ipcMain.handle('setup:check', async () => {
+  const [claude, codex] = await Promise.all([detectStatus({ provider: 'claude' }), detectStatus({ provider: 'codex' })])
+  const facts = gatherFacts({ claudeRoot: CLAUDE_ROOT, codexRoot: CODEX_ROOT, claude, codex })
+  return { ...setupChecklist(facts), firstRun: !readSeen(firstRunFile()) }
+})
+ipcMain.handle('setup:dismiss', () => {
+  markSeen(firstRunFile())
+  return true
+})
+// 안내 목록의 문서 주소만 시스템 브라우저로 연다. 그 밖의 주소는 거절한다.
+ipcMain.handle('setup:open-link', (event, url) => {
+  if (!SETUP_LINKS.includes(url)) throw new Error(`열 수 없는 주소: ${url}`)
+  return shell.openExternal(url)
 })
 
 // 채팅 메시지를 로컬 CLI 에 넘긴다. 로그인 → 동의 순으로 확인하고, 동의가 없으면 띄우지 않는다.
